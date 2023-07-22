@@ -1,0 +1,6 @@
+set(SOURCES src/example.cpp)
+add_executable(tupi_example ${SOURCES})
+target_include_directories(tupi_example PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE ../include)
+target_link_libraries(tupi_example tupi glfw3 ${Vulkan_LIBRARIES} ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
+add_dependencies(tupi_example glfw glm)
+target_compile_features(tupi_example PUBLIC cxx_std_20)
