@@ -12,7 +12,8 @@ class Frame {
 
   auto draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
             const PipelinePtr& pipeline, const Queue& graphics_queue,
-            const Queue& present_queue) -> void;
+            const Queue& present_queue, BufferPtrVec vertex_buffers,
+            OffsetVec offsets, uint32_t vertex_count) -> void;
 
  private:
   CommandBuffer command_buffer_{};

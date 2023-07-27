@@ -19,7 +19,8 @@ Frame::Frame(const LogicalDevicePtr& logical_device,
 
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
-                 const Queue& present_queue) -> void {
+                 const Queue& present_queue, BufferPtrVec vertex_buffers,
+                 OffsetVec offsets, uint32_t vertex_count) -> void {
   fence_->wait();
   auto acquired_result =
       swapchain->acquireNextImage(image_available_semaphore_);
@@ -35,12 +36,22 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   fence_->reset();
   auto image_index = std::get<uint32_t>(acquired_result);
   command_buffer_.reset();
-  command_buffer_.record(framebuffers.at(image_index), pipeline);
+  auto& framebuffer = framebuffers.at(image_index);
+  command_buffer_.beginRenderPass(framebuffer);
+  command_buffer_.bindPipeline(pipeline);
+  auto extent = framebuffer->extent();
+  command_buffer_.setViewport({0.0f, 0.0f, static_cast<float>(extent.width),
+                               static_cast<float>(extent.height), 0.0, 1.0});
+  command_buffer_.setScissor({{0, 0}, extent});
+  command_buffer_.draw(std::move(vertex_buffers), std::move(offsets),
+                       vertex_count);
+  command_buffer_.endRenderPass();
+  command_buffer_.record();
   tupi::SemaphorePtrVec wait_semaphores = {image_available_semaphore_};
   tupi::SemaphorePtrVec signal_semaphores = {render_finished_semaphore_};
-  graphics_queue.submit(wait_semaphores,
+  graphics_queue.submit(command_buffer_, wait_semaphores,
                         {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-                        command_buffer_, signal_semaphores, fence_);
+                        signal_semaphores, fence_);
   auto present_result =
       present_queue.present(swapchain, image_index, signal_semaphores);
   if (present_result == VK_ERROR_OUT_OF_DATE_KHR ||

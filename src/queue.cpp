@@ -15,11 +15,11 @@ Queue::Queue(LogicalDevicePtr device, const QueueFamily& queue_family,
                    &queue_);
 }
 
-auto Queue::submit(const SemaphorePtrVec& wait_semaphores,
+auto Queue::submit(const CommandBuffer& command_buffer,
+                   const SemaphorePtrVec& wait_semaphores,
                    const PipelineStageFlagsVec& wait_stages,
-                   const CommandBuffer& command_buffer,
                    const SemaphorePtrVec& signal_semaphores,
-                   const FencePtr& fence) const -> void {
+                   const FencePtr& fence, bool wait_idle) const -> void {
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   std::vector<VkSemaphore> vk_wait_semaphores;
@@ -38,11 +38,15 @@ auto Queue::submit(const SemaphorePtrVec& wait_semaphores,
   for (const auto& semaphore : signal_semaphores) {
     vk_signal_semaphores.emplace_back(semaphore->handle());
   }
-  submit_info.signalSemaphoreCount = 1;
+  submit_info.signalSemaphoreCount = vk_signal_semaphores.size();
   submit_info.pSignalSemaphores = vk_signal_semaphores.data();
 
-  if (vkQueueSubmit(queue_, 1, &submit_info, fence->handle()) != VK_SUCCESS) {
+  auto vk_fence = (fence) ? fence->handle() : VK_NULL_HANDLE;
+  if (vkQueueSubmit(queue_, 1, &submit_info, vk_fence) != VK_SUCCESS) {
     throw std::runtime_error("Failed to submit command buffer!");
+  }
+  if (wait_idle) {
+    vkQueueWaitIdle(queue_);
   }
 }
 

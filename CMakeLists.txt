@@ -18,7 +18,7 @@ ExternalProject_Add(
   GIT_REPOSITORY https://github.com/glfw/glfw.git
   GIT_TAG 3.3.8
   GIT_SHALLOW ON
-  CMAKE_ARGS -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
+  CMAKE_ARGS -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
 add_library(glfw3 STATIC IMPORTED) 
 set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${EP_DEPLOY_DIR}/lib/libglfw3.a)
 ExternalProject_Add(
@@ -26,10 +26,17 @@ ExternalProject_Add(
   GIT_REPOSITORY https://github.com/g-truc/glm.git
   GIT_SHALLOW ON
   CMAKE_ARGS -DGLM_TEST_ENABLE=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
+ExternalProject_Add(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.2
+  GIT_SHALLOW ON
+  CMAKE_ARGS -DJSON_BuildTests=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
 
 add_compile_options($<$<CONFIG:DEBUG>:-DDEBUG>)
 
 set(SOURCES
+  src/buffer.cpp
   src/command_buffer.cpp
   src/command_pool.cpp
   src/engine.cpp
@@ -65,7 +72,7 @@ add_library(tupi ${SOURCES})
 message(STATUS ${Vulkan_INCLUDE_DIR})
 target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include)
 target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
-add_dependencies(tupi glfw glm)
+add_dependencies(tupi glfw glm json)
 target_compile_features(tupi PUBLIC cxx_std_20)
 
 add_subdirectory(apps)

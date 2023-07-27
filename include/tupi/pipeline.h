@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
@@ -14,8 +15,8 @@
 #include "tupi/pipeline_viewport_state.h"
 
 namespace tupi {
-class Pipeline : public internal::Creatable<Pipeline> {
-  friend class internal::Creatable<Pipeline>;
+class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
+  friend class internal::Creatable<Pipeline, std::shared_ptr>;
 
  public:
   ~Pipeline();

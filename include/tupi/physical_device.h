@@ -17,6 +17,7 @@ class PhysicalDevice
   auto handle() const -> VkPhysicalDevice;
   auto deviceType() const -> VkPhysicalDeviceType;
   auto hasExtension(const std::string& name) const -> bool;
+  auto memoryProperties() const -> VkPhysicalDeviceMemoryProperties;
 
   static auto enumerate(const EnginePtr& engine) -> PhysicalDevicePtrVec;
 
@@ -42,6 +43,13 @@ inline auto PhysicalDevice::deviceType() const -> VkPhysicalDeviceType {
 inline auto PhysicalDevice::hasExtension(const std::string& name) const
     -> bool {
   return extensions_.hasExtension(name);
+}
+
+inline auto PhysicalDevice::memoryProperties() const
+    -> VkPhysicalDeviceMemoryProperties {
+  VkPhysicalDeviceMemoryProperties properties;
+  vkGetPhysicalDeviceMemoryProperties(physical_device_, &properties);
+  return properties;
 }
 
 inline auto hasExtension(const std::string& name) {

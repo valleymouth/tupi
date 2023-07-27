@@ -1,9 +1,10 @@
 #include <algorithm>
+#include <glm/glm.hpp>
 #include <iostream>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "tupi/buffer.h"
 #include "tupi/command_buffer.h"
 #include "tupi/command_pool.h"
 #include "tupi/engine.h"
@@ -33,6 +34,33 @@
 #include "tupi/surface.h"
 #include "tupi/swapchain.h"
 #include "tupi/swapchain_support_detail.h"
+
+struct Vertex {
+  glm::vec2 position;
+  glm::vec3 color;
+
+  static auto bindingDescription() -> tupi::VertexInputBindingDescriptionVec {
+    tupi::VertexInputBindingDescriptionVec result{1};
+    result[0].binding = 0;
+    result[0].stride = sizeof(Vertex);
+    result[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    return result;
+  }
+
+  static auto attributeDescriptions()
+      -> tupi::VertexInputAttributeDescriptionVec {
+    tupi::VertexInputAttributeDescriptionVec result{2};
+    result[0].binding = 0;
+    result[0].location = 0;
+    result[0].format = VK_FORMAT_R32G32_SFLOAT;
+    result[0].offset = offsetof(Vertex, position);
+    result[1].binding = 0;
+    result[1].location = 1;
+    result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    result[1].offset = offsetof(Vertex, color);
+    return result;
+  }
+};
 
 bool checkValidationLayersSupport(
     const std::vector<const char*>& validation_layers) {
@@ -130,7 +158,7 @@ int main() {
   auto fragment_shader = tupi::Shader::create(
       logical_device, "../shaders/frag.spv", tupi::Shader::Fragment);
 
-  auto vertex_input = tupi::PipelineVertexInput{};
+  auto vertex_input = tupi::PipelineVertexInput::create<Vertex>();
   auto input_assembly = tupi::PipelineInputAssembly{};
   auto viewport_state = tupi::PipelineViewportState{
       VkViewport{0.0f, 0.0f, static_cast<float>(extent.width),
@@ -172,6 +200,29 @@ int main() {
   auto command_pool =
       tupi::CommandPool::create(logical_device, graphics_queue_family);
 
+  const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+                                        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                                        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+
+  auto vertex_buffer = tupi::Buffer::create<Vertex>(
+      logical_device, static_cast<uint32_t>(vertices.size()),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    auto staging_buffer = tupi::Buffer::create<Vertex>(
+        logical_device, static_cast<uint32_t>(vertices.size()),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    staging_buffer->copy(vertices);
+
+    tupi::CommandBuffer command_buffer(logical_device, command_pool);
+    command_buffer.copy(staging_buffer, vertex_buffer,
+                        sizeof(Vertex) * vertices.size());
+    command_buffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    graphics_queue.submit(command_buffer, {}, {}, {}, {}, true);
+  }
+
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   tupi::FrameVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -183,7 +234,9 @@ int main() {
   while (!glfwWindowShouldClose(window->handle())) {
     glfwPollEvents();
     frames.at(current_frame)
-        .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue);
+        .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
+              tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
+              static_cast<uint32_t>(vertices.size()));
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 
