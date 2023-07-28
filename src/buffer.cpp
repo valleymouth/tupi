@@ -29,30 +29,6 @@ auto Buffer::findMemoryType(const VkMemoryRequirements& requirements,
   throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-// auto Buffer::copy(const CommandPoolPtr& command_pool, const BufferPtr&
-// source,
-//                   VkDeviceSize size) const -> void {
-//   CommandBuffer command_buffer(logical_device_, command_pool);
-//   command_buffer.copy();
-//   command_buffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-//   VkBufferCopy copyRegion{};
-//   copyRegion.size = size;
-//   vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-//   vkEndCommandBuffer(commandBuffer);
-
-//   VkSubmitInfo submitInfo{};
-//   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//   submitInfo.commandBufferCount = 1;
-//   submitInfo.pCommandBuffers = &commandBuffer;
-
-//   vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-//   vkQueueWaitIdle(graphicsQueue);
-
-//   vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-// }
-
 Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
                VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags)
     : logical_device_(std::move(logical_device)), size_(size) {

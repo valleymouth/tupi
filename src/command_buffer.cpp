@@ -74,20 +74,28 @@ auto CommandBuffer::setScissor(VkRect2D rect) -> void {
   });
 }
 
-auto CommandBuffer::draw(BufferPtrVec vertex_buffers, OffsetVec offsets,
-                         uint32_t vertex_count) -> void {
-  commands_.emplace_back(
-      [=, vertex_buffers_ = std::move(vertex_buffers),
-       offsets_ = std::move(offsets)](const CommandBuffer& command_buffer) {
-        std::vector<VkBuffer> vk_vertex_buffers;
-        vk_vertex_buffers.reserve(vertex_buffers_.size());
-        for (const auto& vertex_buffer : vertex_buffers_) {
-          vk_vertex_buffers.emplace_back(vertex_buffer->handle());
-        }
-        vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
-                               vk_vertex_buffers.data(), offsets_.data());
-        vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
-      });
+auto CommandBuffer::draw(BufferPtrVec vertex_buffers, OffsetVec vertex_offsets,
+                         uint32_t vertex_count, BufferPtr index_buffer,
+                         Offset index_offset, uint32_t index_count) -> void {
+  commands_.emplace_back([=, vertex_buffers_ = std::move(vertex_buffers),
+                          vertex_offsets_ = std::move(vertex_offsets),
+                          index_buffer_ = std::move(index_buffer)](
+                             const CommandBuffer& command_buffer) {
+    std::vector<VkBuffer> vk_vertex_buffers;
+    vk_vertex_buffers.reserve(vertex_buffers_.size());
+    for (const auto& vertex_buffer : vertex_buffers_) {
+      vk_vertex_buffers.emplace_back(vertex_buffer->handle());
+    }
+    vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
+                           vk_vertex_buffers.data(), vertex_offsets_.data());
+    if (index_buffer_) {
+      vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
+                           index_offset, VK_INDEX_TYPE_UINT16);
+      vkCmdDrawIndexed(command_buffer.handle(), index_count, 1, 0, 0, 0);
+    } else {
+      vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
+    }
+  });
 }
 
 auto CommandBuffer::copy(BufferPtr source, BufferPtr destination,

@@ -2,14 +2,15 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "tupi/command_buffer.h"
+#include "tupi/command_pool.h"
 #include "tupi/fwd.h"
 #include "tupi/internal/creatable.h"
 #include "tupi/logical_device.h"
+#include "tupi/queue.h"
 
 namespace tupi {
-class Buffer {  //: public internal::Creatable<Buffer, std::shared_ptr> {
-                // friend class internal::Creatable<Buffer, std::shared_ptr>;
-
+class Buffer {
  public:
   ~Buffer();
 
@@ -17,6 +18,7 @@ class Buffer {  //: public internal::Creatable<Buffer, std::shared_ptr> {
   auto memoryRequirements() const -> VkMemoryRequirements;
   auto findMemoryType(const VkMemoryRequirements& requirements,
                       VkMemoryPropertyFlags property_flags) const -> uint32_t;
+
   template <typename T>
   auto copy(const std::vector<T>& vec) const -> void {
     void* data;
@@ -24,8 +26,6 @@ class Buffer {  //: public internal::Creatable<Buffer, std::shared_ptr> {
     memcpy(data, vec.data(), static_cast<std::size_t>(size_));
     vkUnmapMemory(logical_device_->handle(), memory_);
   }
-  // auto copy(const CommandPoolPtr& command_pool, const BufferPtr& source,
-  //           VkDeviceSize size) const -> void;
 
   template <typename T>
   static auto create(LogicalDevicePtr logical_device, uint32_t size,
@@ -33,6 +33,24 @@ class Buffer {  //: public internal::Creatable<Buffer, std::shared_ptr> {
                      VkMemoryPropertyFlags property_flags) -> BufferPtr {
     return BufferPtr(new Buffer(std::move(logical_device), sizeof(T) * size,
                                 usage, property_flags));
+  }
+
+  template <typename T>
+  static auto copy(const std::vector<T>& data, const BufferPtr& buffer,
+                   const CommandPoolPtr& command_pool, const Queue& queue)
+      -> void {
+    const auto& logical_device = command_pool->logicalDevice();
+    auto staging_buffer = tupi::Buffer::create<T>(
+        logical_device, static_cast<uint32_t>(data.size()),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    staging_buffer->copy(data);
+
+    tupi::CommandBuffer command_buffer(logical_device, command_pool);
+    command_buffer.copy(staging_buffer, buffer, sizeof(T) * data.size());
+    command_buffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    queue.submit(command_buffer, {}, {}, {}, {}, true);
   }
 
  protected:

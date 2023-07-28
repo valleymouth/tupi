@@ -20,7 +20,9 @@ Frame::Frame(const LogicalDevicePtr& logical_device,
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
                  const Queue& present_queue, BufferPtrVec vertex_buffers,
-                 OffsetVec offsets, uint32_t vertex_count) -> void {
+                 OffsetVec offsets, uint32_t vertex_count,
+                 BufferPtr index_buffer, Offset index_offset,
+                 uint32_t index_count) -> void {
   fence_->wait();
   auto acquired_result =
       swapchain->acquireNextImage(image_available_semaphore_);
@@ -44,7 +46,8 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                                static_cast<float>(extent.height), 0.0, 1.0});
   command_buffer_.setScissor({{0, 0}, extent});
   command_buffer_.draw(std::move(vertex_buffers), std::move(offsets),
-                       vertex_count);
+                       vertex_count, std::move(index_buffer), index_offset,
+                       index_count);
   command_buffer_.endRenderPass();
   command_buffer_.record();
   tupi::SemaphorePtrVec wait_semaphores = {image_available_semaphore_};

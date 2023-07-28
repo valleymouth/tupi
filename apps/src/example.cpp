@@ -129,11 +129,8 @@ int main() {
       *std::ranges::begin(swapchain_support_details);
   auto physical_device = swapchain_support_detail.physicalDevice();
   auto surface_format = swapchain_support_detail.surfaceFormat();
-  std::cout << surface_format.has_value() << std::endl;
   auto present_mode = swapchain_support_detail.presentMode();
-  std::cout << present_mode.has_value() << std::endl;
   auto extent = swapchain_support_detail.swapchainExtent(WIDTH, HEIGHT);
-  std::cout << extent.width << " " << extent.height << std::endl;
   auto queue_families = tupi::QueueFamily::enumerate(physical_device);
   auto graphics_queue_family =
       *std::ranges::find_if(queue_families, tupi::hasGraphics);
@@ -200,28 +197,25 @@ int main() {
   auto command_pool =
       tupi::CommandPool::create(logical_device, graphics_queue_family);
 
-  const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-                                        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+  const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+  const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
 
   auto vertex_buffer = tupi::Buffer::create<Vertex>(
       logical_device, static_cast<uint32_t>(vertices.size()),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  {
-    auto staging_buffer = tupi::Buffer::create<Vertex>(
-        logical_device, static_cast<uint32_t>(vertices.size()),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    staging_buffer->copy(vertices);
+  tupi::Buffer::copy<Vertex>(vertices, vertex_buffer, command_pool,
+                             graphics_queue);
 
-    tupi::CommandBuffer command_buffer(logical_device, command_pool);
-    command_buffer.copy(staging_buffer, vertex_buffer,
-                        sizeof(Vertex) * vertices.size());
-    command_buffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    graphics_queue.submit(command_buffer, {}, {}, {}, {}, true);
-  }
+  auto index_buffer = tupi::Buffer::create<uint16_t>(
+      logical_device, static_cast<uint32_t>(indices.size()),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  tupi::Buffer::copy<uint16_t>(indices, index_buffer, command_pool,
+                               graphics_queue);
 
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   tupi::FrameVec frames;
@@ -236,7 +230,8 @@ int main() {
     frames.at(current_frame)
         .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
               tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
-              static_cast<uint32_t>(vertices.size()));
+              static_cast<uint32_t>(vertices.size()), index_buffer, 0,
+              static_cast<uint32_t>(indices.size()));
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 

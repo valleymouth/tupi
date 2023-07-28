@@ -18,7 +18,8 @@ class CommandBuffer {
   auto setViewport(VkViewport viewport) -> void;
   auto setScissor(VkRect2D rect) -> void;
   auto draw(BufferPtrVec vertex_buffers, OffsetVec offsets,
-            uint32_t vertex_count) -> void;
+            uint32_t vertex_count, BufferPtr index_buffer = {},
+            Offset index_offset = 0, uint32_t index_count = 0) -> void;
   auto copy(BufferPtr source, BufferPtr destination, VkDeviceSize size,
             VkDeviceSize source_offset = 0, VkDeviceSize destination_offset = 0)
       -> void;
