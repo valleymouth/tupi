@@ -7,6 +7,16 @@ Semaphore::~Semaphore() {
   vkDestroySemaphore(logical_device_->handle(), semaphore_, nullptr);
 }
 
+auto Semaphore::handles(const SemaphorePtrVec& semaphores)
+    -> std::vector<VkSemaphore> {
+  std::vector<VkSemaphore> result;
+  result.reserve(semaphores.size());
+  for (const auto& semaphore : semaphores) {
+    result.emplace_back(semaphore->handle());
+  }
+  return result;
+}
+
 Semaphore::Semaphore(LogicalDevicePtr logical_device)
     : logical_device_(std::move(logical_device)) {
   VkSemaphoreCreateInfo create_info{};

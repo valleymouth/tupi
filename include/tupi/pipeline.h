@@ -22,6 +22,7 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
   ~Pipeline();
 
   auto handle() const -> VkPipeline;
+  auto pipelineLayout() const -> PipelineLayoutPtr;
   auto renderPass() const -> RenderPassPtr;
 
  protected:
@@ -32,8 +33,8 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
            PipelineRasterizationState rasterization_state,
            PipelineMultisampleState multisample_state,
            PipelineColorBlendState color_blend_state,
-           PipelineDynamicState dynamic_state, PipelineLayout pipeline_layout,
-           RenderPassPtr render_pass);
+           PipelineDynamicState dynamic_state,
+           PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass);
   Pipeline(const Pipeline&) = delete;
   Pipeline(Pipeline&&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
@@ -49,12 +50,16 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
   PipelineMultisampleState multisample_state_{};
   PipelineColorBlendState color_blend_state_{};
   PipelineDynamicState dynamic_state_{};
-  PipelineLayout pipeline_layout_{};
+  PipelineLayoutPtr pipeline_layout_{};
   RenderPassPtr render_pass_{};
   VkPipeline pipeline_{};
 };
 
 inline auto Pipeline::handle() const -> VkPipeline { return pipeline_; }
+
+inline auto Pipeline::pipelineLayout() const -> PipelineLayoutPtr {
+  return pipeline_layout_;
+}
 
 inline auto Pipeline::renderPass() const -> RenderPassPtr {
   return render_pass_;

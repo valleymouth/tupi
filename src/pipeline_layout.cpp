@@ -1,5 +1,7 @@
 #include "tupi/pipeline_layout.h"
 
+#include "tupi/descriptor_set_layout.h"
+#include "tupi/descriptor_set_layout_binding.h"
 #include "tupi/logical_device.h"
 
 namespace tupi {
@@ -10,12 +12,14 @@ PipelineLayout::~PipelineLayout() {
   }
 }
 
-PipelineLayout::PipelineLayout(LogicalDevicePtr logical_device)
+PipelineLayout::PipelineLayout(LogicalDevicePtr logical_device,
+                               DescriptorSetLayoutPtrVec descriptor_sets)
     : logical_device_(std::move(logical_device)) {
   VkPipelineLayoutCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  create_info.setLayoutCount = 0;             // Optional
-  create_info.pSetLayouts = nullptr;          // Optional
+  create_info.setLayoutCount = static_cast<uint32_t>(descriptor_sets.size());
+  auto vk_descriptor_sets = DescriptorSetLayout::handles(descriptor_sets);
+  create_info.pSetLayouts = vk_descriptor_sets.data();
   create_info.pushConstantRangeCount = 0;     // Optional
   create_info.pPushConstantRanges = nullptr;  // Optional
 

@@ -41,6 +41,10 @@ set(SOURCES
   src/command_pool.cpp
   src/engine.cpp
   src/extension_set.cpp
+  src/descriptor_pool.cpp
+  src/descriptor_set.cpp
+  src/descriptor_set_layout.cpp
+  src/descriptor_set_layout_binding.cpp
   src/fence.cpp
   src/frame.cpp
   src/framebuffer.cpp

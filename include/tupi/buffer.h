@@ -15,16 +15,34 @@ class Buffer {
   ~Buffer();
 
   auto handle() const -> VkBuffer;
+  auto size() const -> VkDeviceSize;
   auto memoryRequirements() const -> VkMemoryRequirements;
   auto findMemoryType(const VkMemoryRequirements& requirements,
                       VkMemoryPropertyFlags property_flags) const -> uint32_t;
+  auto isMapped() const -> bool;
+  auto map() -> void;
+  auto unmap() -> void;
 
   template <typename T>
-  auto copy(const std::vector<T>& vec) const -> void {
-    void* data;
-    vkMapMemory(logical_device_->handle(), memory_, 0, size_, 0, &data);
-    memcpy(data, vec.data(), static_cast<std::size_t>(size_));
-    vkUnmapMemory(logical_device_->handle(), memory_);
+  auto copy(const std::vector<T>& vec, bool keep_mapped = false) -> void {
+    if (!isMapped()) {
+      map();
+    }
+    memcpy(data_, vec.data(), static_cast<std::size_t>(size_));
+    if (!keep_mapped) {
+      unmap();
+    }
+  }
+
+  template <typename T>
+  auto copy(const T& x, bool keep_mapped = false) -> void {
+    if (!isMapped()) {
+      map();
+    }
+    memcpy(data_, &x, static_cast<std::size_t>(size_));
+    if (!keep_mapped) {
+      unmap();
+    }
   }
 
   template <typename T>
@@ -33,6 +51,13 @@ class Buffer {
                      VkMemoryPropertyFlags property_flags) -> BufferPtr {
     return BufferPtr(new Buffer(std::move(logical_device), sizeof(T) * size,
                                 usage, property_flags));
+  }
+
+  template <typename T>
+  static auto create(LogicalDevicePtr logical_device, VkBufferUsageFlags usage,
+                     VkMemoryPropertyFlags property_flags) -> BufferPtr {
+    return BufferPtr(new Buffer(std::move(logical_device), sizeof(T), usage,
+                                property_flags));
   }
 
   template <typename T>
@@ -53,6 +78,8 @@ class Buffer {
     queue.submit(command_buffer, {}, {}, {}, {}, true);
   }
 
+  static auto handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer>;
+
  protected:
   Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
          VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags);
@@ -66,7 +93,12 @@ class Buffer {
   VkDeviceSize size_{};
   VkBuffer buffer_{VK_NULL_HANDLE};
   VkDeviceMemory memory_{VK_NULL_HANDLE};
+  void* data_{nullptr};
 };
 
 inline auto Buffer::handle() const -> VkBuffer { return buffer_; }
+
+inline auto Buffer::size() const -> VkDeviceSize { return size_; }
+
+inline auto Buffer::isMapped() const -> bool { return data_ != nullptr; }
 }  // namespace tupi

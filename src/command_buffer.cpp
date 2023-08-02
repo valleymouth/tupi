@@ -2,6 +2,7 @@
 
 #include "tupi/buffer.h"
 #include "tupi/command_pool.h"
+#include "tupi/descriptor_set.h"
 #include "tupi/framebuffer.h"
 #include "tupi/logical_device.h"
 #include "tupi/pipeline.h"
@@ -62,6 +63,21 @@ auto CommandBuffer::bindPipeline(PipelinePtr pipeline) -> void {
       });
 }
 
+auto CommandBuffer::bindDescriptorSets(PipelineLayoutPtr pipeline_layout,
+                                       DescriptorSetPtrVec descriptor_sets)
+    -> void {
+  commands_.emplace_back([pipeline_layout_ = std::move(pipeline_layout),
+                          descriptor_sets_ = std::move(descriptor_sets)](
+                             const CommandBuffer& command_buffer) {
+    auto vk_descriptor_sets = DescriptorSet::handles(descriptor_sets_);
+    vkCmdBindDescriptorSets(command_buffer.handle(),
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline_layout_->handle(), 0,
+                            static_cast<uint32_t>(vk_descriptor_sets.size()),
+                            vk_descriptor_sets.data(), 0, nullptr);
+  });
+}
+
 auto CommandBuffer::setViewport(VkViewport viewport) -> void {
   commands_.emplace_back([=](const CommandBuffer& command_buffer) {
     vkCmdSetViewport(command_buffer.handle(), 0, 1, &viewport);
@@ -81,11 +97,7 @@ auto CommandBuffer::draw(BufferPtrVec vertex_buffers, OffsetVec vertex_offsets,
                           vertex_offsets_ = std::move(vertex_offsets),
                           index_buffer_ = std::move(index_buffer)](
                              const CommandBuffer& command_buffer) {
-    std::vector<VkBuffer> vk_vertex_buffers;
-    vk_vertex_buffers.reserve(vertex_buffers_.size());
-    for (const auto& vertex_buffer : vertex_buffers_) {
-      vk_vertex_buffers.emplace_back(vertex_buffer->handle());
-    }
+    auto vk_vertex_buffers = Buffer::handles(vertex_buffers_);
     vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
                            vk_vertex_buffers.data(), vertex_offsets_.data());
     if (index_buffer_) {

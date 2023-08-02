@@ -22,22 +22,14 @@ auto Queue::submit(const CommandBuffer& command_buffer,
                    const FencePtr& fence, bool wait_idle) const -> void {
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  std::vector<VkSemaphore> vk_wait_semaphores;
-  vk_wait_semaphores.reserve(wait_semaphores.size());
-  for (const auto& semaphore : wait_semaphores) {
-    vk_wait_semaphores.emplace_back(semaphore->handle());
-  }
+  auto vk_wait_semaphores = Semaphore::handles(wait_semaphores);
   submit_info.waitSemaphoreCount = vk_wait_semaphores.size();
   submit_info.pWaitSemaphores = vk_wait_semaphores.data();
   submit_info.pWaitDstStageMask = wait_stages.data();
   auto vk_command_buffer = command_buffer.handle();
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &vk_command_buffer;
-  std::vector<VkSemaphore> vk_signal_semaphores;
-  vk_signal_semaphores.reserve(signal_semaphores.size());
-  for (const auto& semaphore : signal_semaphores) {
-    vk_signal_semaphores.emplace_back(semaphore->handle());
-  }
+  auto vk_signal_semaphores = Semaphore::handles(signal_semaphores);
   submit_info.signalSemaphoreCount = vk_signal_semaphores.size();
   submit_info.pSignalSemaphores = vk_signal_semaphores.data();
 
@@ -54,11 +46,7 @@ auto Queue::present(const SwapchainPtr& swapchain, uint32_t image_index,
                     const SemaphorePtrVec& wait_semaphores) const -> VkResult {
   VkPresentInfoKHR present_info{};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  std::vector<VkSemaphore> vk_wait_semaphores;
-  vk_wait_semaphores.reserve(wait_semaphores.size());
-  for (const auto& semaphore : wait_semaphores) {
-    vk_wait_semaphores.emplace_back(semaphore->handle());
-  }
+  auto vk_wait_semaphores = Semaphore::handles(wait_semaphores);
   present_info.waitSemaphoreCount = vk_wait_semaphores.size();
   present_info.pWaitSemaphores = vk_wait_semaphores.data();
   VkSwapchainKHR swapchains[] = {swapchain->handle()};

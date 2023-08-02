@@ -15,6 +15,8 @@ class CommandBuffer {
   auto beginRenderPass(FramebufferPtr framebuffer) -> void;
   auto endRenderPass() -> void;
   auto bindPipeline(PipelinePtr pipeline) -> void;
+  auto bindDescriptorSets(PipelineLayoutPtr pipeline_layout,
+                          DescriptorSetPtrVec descriptor_sets) -> void;
   auto setViewport(VkViewport viewport) -> void;
   auto setScissor(VkRect2D rect) -> void;
   auto draw(BufferPtrVec vertex_buffers, OffsetVec offsets,

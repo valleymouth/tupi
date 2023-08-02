@@ -12,6 +12,9 @@ class SubpassDescription {
 
   auto handle() const -> VkSubpassDescription;
 
+  static auto handles(const SubpassDescriptionVec& subpasses)
+      -> std::vector<VkSubpassDescription>;
+
  private:
   VkSubpassDescription subpass_{};
   AttachmentReferenceVec color_attachments_{};

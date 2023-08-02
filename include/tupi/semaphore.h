@@ -14,6 +14,9 @@ class Semaphore : public internal::Creatable<Semaphore, std::shared_ptr> {
 
   auto handle() const -> VkSemaphore;
 
+  static auto handles(const SemaphorePtrVec& semaphores)
+      -> std::vector<VkSemaphore>;
+
  protected:
   Semaphore(LogicalDevicePtr logical_device);
   Semaphore(const Semaphore&) = delete;

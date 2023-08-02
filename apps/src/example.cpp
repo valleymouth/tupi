@@ -1,12 +1,19 @@
 #include <algorithm>
-#include <glm/glm.hpp>
+#include <chrono>
 #include <iostream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "tupi/buffer.h"
 #include "tupi/command_buffer.h"
 #include "tupi/command_pool.h"
+#include "tupi/descriptor_pool.h"
+#include "tupi/descriptor_set.h"
+#include "tupi/descriptor_set_layout.h"
+#include "tupi/descriptor_set_layout_binding.h"
 #include "tupi/engine.h"
 #include "tupi/extension_set.h"
 #include "tupi/fence.h"
@@ -60,6 +67,12 @@ struct Vertex {
     result[1].offset = offsetof(Vertex, color);
     return result;
   }
+};
+
+struct UniformBufferObject {
+  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 view;
+  alignas(16) glm::mat4 proj;
 };
 
 bool checkValidationLayersSupport(
@@ -172,7 +185,13 @@ int main() {
               VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                   VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}});
   auto dynamic_state = tupi::PipelineDynamicState{};
-  auto pipeline_layout = tupi::PipelineLayout{logical_device};
+  auto descriptor_set_layout = tupi::DescriptorSetLayout::create(
+      logical_device,
+      tupi::DescriptorSetLayoutBindingVec{
+          tupi::DescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                           1, VK_SHADER_STAGE_VERTEX_BIT}});
+  auto pipeline_layout = tupi::PipelineLayout::create(
+      logical_device, tupi::DescriptorSetLayoutPtrVec{descriptor_set_layout});
 
   auto attachment_descriptions =
       tupi::AttachmentDescriptionVec{tupi::AttachmentDescription{
@@ -220,15 +239,51 @@ int main() {
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   tupi::FrameVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
+  tupi::BufferPtrVec uniform_buffers;
+  uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
+  auto descriptor_pool = tupi::DescriptorPool::create(
+      logical_device,
+      tupi::DescriptorPoolSizeVec{
+          {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+           static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)}},
+      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     frames.emplace_back(logical_device, command_pool);
+    uniform_buffers.emplace_back(tupi::Buffer::create<UniformBufferObject>(
+        logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
   }
+  auto descriptor_sets = tupi::DescriptorSet::create(
+      descriptor_pool, {descriptor_set_layout, descriptor_set_layout},
+      uniform_buffers);
+
+  // tupi::gltf::Reader reader;
+  // reader.read("../models/WaterBottle/WaterBottle.gltf");
 
   uint32_t current_frame = 0;
   while (!glfwWindowShouldClose(window->handle())) {
     glfwPollEvents();
+
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(
+                     currentTime - startTime)
+                     .count();
+    UniformBufferObject ubo{};
+    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view =
+        glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                    glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(
+        glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
+    uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
+
     frames.at(current_frame)
         .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
+              {descriptor_sets.at(current_frame)},
               tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
               static_cast<uint32_t>(vertices.size()), index_buffer, 0,
               static_cast<uint32_t>(indices.size()));

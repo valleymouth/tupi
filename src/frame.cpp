@@ -19,10 +19,11 @@ Frame::Frame(const LogicalDevicePtr& logical_device,
 
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
-                 const Queue& present_queue, BufferPtrVec vertex_buffers,
-                 OffsetVec offsets, uint32_t vertex_count,
-                 BufferPtr index_buffer, Offset index_offset,
-                 uint32_t index_count) -> void {
+                 const Queue& present_queue,
+                 DescriptorSetPtrVec descriptor_sets,
+                 BufferPtrVec vertex_buffers, OffsetVec offsets,
+                 uint32_t vertex_count, BufferPtr index_buffer,
+                 Offset index_offset, uint32_t index_count) -> void {
   fence_->wait();
   auto acquired_result =
       swapchain->acquireNextImage(image_available_semaphore_);
@@ -41,6 +42,8 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   auto& framebuffer = framebuffers.at(image_index);
   command_buffer_.beginRenderPass(framebuffer);
   command_buffer_.bindPipeline(pipeline);
+  command_buffer_.bindDescriptorSets(pipeline->pipelineLayout(),
+                                     descriptor_sets);
   auto extent = framebuffer->extent();
   command_buffer_.setViewport({0.0f, 0.0f, static_cast<float>(extent.width),
                                static_cast<float>(extent.height), 0.0, 1.0});

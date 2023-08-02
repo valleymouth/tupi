@@ -29,6 +29,27 @@ auto Buffer::findMemoryType(const VkMemoryRequirements& requirements,
   throw std::runtime_error("Failed to find suitable memory type!");
 }
 
+auto Buffer::map() -> void {
+  if (!isMapped()) {
+    vkMapMemory(logical_device_->handle(), memory_, 0, size_, 0, &data_);
+  }
+}
+
+auto Buffer::unmap() -> void {
+  if (isMapped()) {
+    vkUnmapMemory(logical_device_->handle(), memory_);
+  }
+}
+
+auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
+  std::vector<VkBuffer> result;
+  result.reserve(buffers.size());
+  for (const auto& buffer : buffers) {
+    result.emplace_back(buffer->handle());
+  }
+  return result;
+}
+
 Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
                VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags)
     : logical_device_(std::move(logical_device)), size_(size) {

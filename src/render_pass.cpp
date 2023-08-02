@@ -17,18 +17,9 @@ RenderPass::RenderPass(LogicalDevicePtr logical_device,
   VkRenderPassCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   create_info.attachmentCount = attachments_.size();
-  std::vector<VkAttachmentDescription> vk_attachments;
-  vk_attachments.reserve(attachments_.size());
-  for (const auto& attachment : attachments_) {
-    vk_attachments.emplace_back(attachment);
-  }
-  create_info.pAttachments = vk_attachments.data();
+  create_info.pAttachments = attachments_.data();
   create_info.subpassCount = subpasses_.size();
-  std::vector<VkSubpassDescription> vk_subpasses;
-  vk_subpasses.reserve(subpasses_.size());
-  for (const auto& subpass : subpasses_) {
-    vk_subpasses.emplace_back(subpass.handle());
-  }
+  auto vk_subpasses = SubpassDescription::handles(subpasses_);
   create_info.pSubpasses = vk_subpasses.data();
 
   VkSubpassDependency dependency{};

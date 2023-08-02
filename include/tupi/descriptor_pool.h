@@ -1,0 +1,39 @@
+#include <memory>
+#include <vulkan/vulkan.hpp>
+
+#include "tupi/fwd.h"
+#include "tupi/internal/creatable.h"
+
+namespace tupi {
+class DescriptorPool
+    : public internal::Creatable<DescriptorPool, std::shared_ptr> {
+  friend class internal::Creatable<DescriptorPool, std::shared_ptr>;
+
+ public:
+  ~DescriptorPool();
+
+  auto handle() const -> VkDescriptorPool;
+  auto logicalDevice() const -> LogicalDevicePtr;
+
+ protected:
+  DescriptorPool(LogicalDevicePtr logical_device,
+                 DescriptorPoolSizeVec pool_sizes, uint32_t max_sets);
+  DescriptorPool(const DescriptorPool&) = delete;
+  DescriptorPool(DescriptorPool&&) = delete;
+  auto operator=(const DescriptorPool&) -> DescriptorPool& = delete;
+  auto operator=(DescriptorPool&&) -> DescriptorPool& = delete;
+
+ private:
+  LogicalDevicePtr logical_device_{};
+  DescriptorPoolSizeVec pool_sizes_{};
+  VkDescriptorPool descriptor_pool_{};
+};
+
+inline auto DescriptorPool::handle() const -> VkDescriptorPool {
+  return descriptor_pool_;
+}
+
+inline auto DescriptorPool::logicalDevice() const -> LogicalDevicePtr {
+  return logical_device_;
+}
+}  // namespace tupi

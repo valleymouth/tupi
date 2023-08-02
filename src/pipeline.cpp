@@ -18,7 +18,7 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
                    PipelineMultisampleState multisample_state,
                    PipelineColorBlendState color_blend_state,
                    PipelineDynamicState dynamic_state,
-                   PipelineLayout pipeline_layout, RenderPassPtr render_pass)
+                   PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass)
     : logical_device_(std::move(logical_device)),
       shaders_(std::move(shaders)),
       vertex_input_(std::move(vertex_input)),
@@ -33,11 +33,7 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
   VkGraphicsPipelineCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   create_info.stageCount = shaders_.size();
-  std::vector<VkPipelineShaderStageCreateInfo> vk_shaders;
-  vk_shaders.reserve(shaders_.size());
-  for (const auto& shader : shaders_) {
-    vk_shaders.emplace_back(shader->pipelineCreateInfo());
-  }
+  auto vk_shaders = Shader::pipelineCreateInfos(shaders_);
   create_info.pStages = vk_shaders.data();
   auto vk_vertex_input = vertex_input_.pipelineCreateInfo();
   create_info.pVertexInputState = &vk_vertex_input;
@@ -54,7 +50,7 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
   create_info.pColorBlendState = &vk_color_blend_state;
   auto vk_dynamic_state = dynamic_state_.pipelineCreateInfo();
   create_info.pDynamicState = &vk_dynamic_state;
-  create_info.layout = pipeline_layout_.handle();
+  create_info.layout = pipeline_layout_->handle();
   create_info.renderPass = render_pass_->handle();
   create_info.subpass = 0;
   create_info.basePipelineHandle = VK_NULL_HANDLE;  // Optional

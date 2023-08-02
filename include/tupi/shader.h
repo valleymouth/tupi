@@ -18,6 +18,9 @@ class Shader : public internal::Creatable<Shader, std::shared_ptr> {
 
   auto pipelineCreateInfo() const -> VkPipelineShaderStageCreateInfo;
 
+  static auto pipelineCreateInfos(const ShaderPtrVec& shaders)
+      -> std::vector<VkPipelineShaderStageCreateInfo>;
+
  protected:
   Shader(LogicalDevicePtr logical_device, const std::filesystem::path& path,
          Stage stage);
