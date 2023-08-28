@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/command_buffer.h"
@@ -59,6 +60,9 @@ class Buffer {
     return BufferPtr(new Buffer(std::move(logical_device), sizeof(T), usage,
                                 property_flags));
   }
+
+  static auto create(LogicalDevicePtr logical_device,
+                     const std::filesystem::path& path) -> BufferPtr;
 
   template <typename T>
   static auto copy(const std::vector<T>& data, const BufferPtr& buffer,

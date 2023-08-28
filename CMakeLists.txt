@@ -5,6 +5,7 @@ cmake_policy(SET CMP0048 NEW)
 project(tupi VERSION 0.1)
 
 include(ExternalProject)
+include(FetchContent)
 set(EP_BINARY_DIR ${CMAKE_BINARY_DIR}/external)
 set(EP_DEPLOY_DIR ${EP_BINARY_DIR}/deploy)
 set(EP_INCLUDE_DIR ${EP_DEPLOY_DIR}/include)
@@ -24,6 +25,7 @@ set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${EP_DEPLOY_DIR}/lib/li
 ExternalProject_Add(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
+  #GIT_TAG 0.9.9.8
   GIT_SHALLOW ON
   CMAKE_ARGS -DGLM_TEST_ENABLE=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
 ExternalProject_Add(
@@ -32,6 +34,11 @@ ExternalProject_Add(
   GIT_TAG v3.11.2
   GIT_SHALLOW ON
   CMAKE_ARGS -DJSON_BuildTests=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG 5736b15f7ea0ffb08dd38af21067c314d6a3aae9)
+FetchContent_MakeAvailable(stb)
 
 add_compile_options($<$<CONFIG:DEBUG>:-DDEBUG>)
 
@@ -74,8 +81,8 @@ set(SOURCES
 
 add_library(tupi ${SOURCES})
 message(STATUS ${Vulkan_INCLUDE_DIR})
-target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include)
-target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
+target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} ${stb_SOURCE_DIR} PRIVATE include)
+target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES})
 add_dependencies(tupi glfw glm json)
 target_compile_features(tupi PUBLIC cxx_std_20)
 

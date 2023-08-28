@@ -1,5 +1,7 @@
 #include "tupi/buffer.h"
 
+#include <stb_image.h>
+
 #include "tupi/physical_device.h"
 
 namespace tupi {
@@ -39,6 +41,25 @@ auto Buffer::unmap() -> void {
   if (isMapped()) {
     vkUnmapMemory(logical_device_->handle(), memory_);
   }
+}
+
+auto Buffer::create(LogicalDevicePtr logical_device,
+                    const std::filesystem::path& path) -> BufferPtr {
+  int width, height, channels;
+  stbi_uc* image =
+      stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+  VkDeviceSize image_size = width * height * 4;
+
+  if (!image) {
+    throw std::runtime_error("Failed to load texture image!");
+  }
+
+  BufferPtr buffer = create<std::byte>(
+      std::move(logical_device), image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  return {};
 }
 
 auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
