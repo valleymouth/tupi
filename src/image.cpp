@@ -17,9 +17,21 @@ auto Image::enumerate(const Swapchain& swapchain) -> ImagePtrVec {
   ImagePtrVec result;
   result.reserve(count);
   for (const auto& vk_image : images) {
-    auto& image = result.emplace_back(Image::create());
-    image->image_ = vk_image;
+    auto& image = result.emplace_back(
+        std::shared_ptr<Image>(new Image(logical_device, vk_image)));
   }
   return result;
+}
+
+Image::Image(Image&& other)
+    : logical_device_(std::move(other.logical_device_)), image_(other.image_) {
+  other.image_ = VK_NULL_HANDLE;
+}
+
+auto Image::operator=(Image&& other) -> Image& {
+  logical_device_ = std::move(other.logical_device_);
+  image_ = other.image_;
+  other.image_ = VK_NULL_HANDLE;
+  return *this;
 }
 }  // namespace tupi

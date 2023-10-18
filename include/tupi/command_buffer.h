@@ -1,14 +1,16 @@
 #pragma once
 
+#include <functional>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
+#include "tupi/internal/creatable.h"
 
 namespace tupi {
-class CommandBuffer {
+class CommandBuffer : public internal::Creatable<CommandBuffer> {
+  friend class internal::Creatable<CommandBuffer>;
+
  public:
-  CommandBuffer() = default;
-  CommandBuffer(LogicalDevicePtr logical_device, CommandPoolPtr command_pool);
   ~CommandBuffer();
 
   auto handle() const -> VkCommandBuffer;
@@ -25,10 +27,16 @@ class CommandBuffer {
   auto copy(BufferPtr source, BufferPtr destination, VkDeviceSize size,
             VkDeviceSize source_offset = 0, VkDeviceSize destination_offset = 0)
       -> void;
+  auto copy(BufferPtr source, Image2DPtr destination) -> void;
   auto reset() -> void;
   auto record(const FramebufferPtr& framebuffer, const PipelinePtr& pipeline)
       -> void;
   auto record(VkCommandBufferUsageFlags flags = 0) -> void;
+  auto transitionImageLayout(ImagePtr image, VkFormat format,
+                             VkImageLayout from, VkImageLayout to) -> void;
+
+ protected:
+  CommandBuffer(CommandPoolPtr command_pool);
 
  private:
   using Command = std::function<void(const CommandBuffer&)>;

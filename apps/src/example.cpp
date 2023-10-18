@@ -4,6 +4,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -21,10 +22,13 @@
 #include "tupi/framebuffer.h"
 #include "tupi/glfw/surface.h"
 #include "tupi/glfw/window.h"
+#include "tupi/image_2d.h"
+#include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/physical_device.h"
 #include "tupi/pipeline.h"
 #include "tupi/pipeline_color_blend_state.h"
+#include "tupi/pipeline_depth_stencil_state.h"
 #include "tupi/pipeline_dynamic_state.h"
 #include "tupi/pipeline_input_assembly.h"
 #include "tupi/pipeline_layout.h"
@@ -35,6 +39,7 @@
 #include "tupi/queue.h"
 #include "tupi/queue_family.h"
 #include "tupi/render_pass.h"
+#include "tupi/sampler.h"
 #include "tupi/semaphore.h"
 #include "tupi/shader.h"
 #include "tupi/subpass_description.h"
@@ -43,8 +48,9 @@
 #include "tupi/swapchain_support_detail.h"
 
 struct Vertex {
-  glm::vec2 position;
+  glm::vec3 position;
   glm::vec3 color;
+  glm::vec2 texcoord;
 
   static auto bindingDescription() -> tupi::VertexInputBindingDescriptionVec {
     tupi::VertexInputBindingDescriptionVec result{1};
@@ -56,15 +62,19 @@ struct Vertex {
 
   static auto attributeDescriptions()
       -> tupi::VertexInputAttributeDescriptionVec {
-    tupi::VertexInputAttributeDescriptionVec result{2};
+    tupi::VertexInputAttributeDescriptionVec result{3};
     result[0].binding = 0;
     result[0].location = 0;
-    result[0].format = VK_FORMAT_R32G32_SFLOAT;
+    result[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     result[0].offset = offsetof(Vertex, position);
     result[1].binding = 0;
     result[1].location = 1;
     result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     result[1].offset = offsetof(Vertex, color);
+    result[2].binding = 0;
+    result[2].location = 2;
+    result[2].format = VK_FORMAT_R32G32_SFLOAT;
+    result[2].offset = offsetof(Vertex, texcoord);
     return result;
   }
 };
@@ -134,6 +144,7 @@ int main() {
   });
   auto swapchain_support_details =
       physical_devices | tupi::hasExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME) |
+      tupi::hasFeature(tupi::PhysicalDevice::Feature::SamplerAnisotropy) |
       std::views::transform([&surface](auto&& x) {
         return tupi::SwapchainSupportDetail(x, surface);
       }) |
@@ -163,10 +174,19 @@ int main() {
       tupi::Swapchain::create(logical_device, swapchain_support_detail,
                               graphics_queue_family, present_queue_family);
 
+  // Depth buffer
+  auto depth_format = physical_device->findDepthFormat();
+  auto depth_image_info = tupi::ImageInfo2D(
+      depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      swapchain->extent());
+  auto depth_image = tupi::Image2D::create(logical_device, depth_image_info);
+  auto depth_image_view = tupi::ImageView::create(
+      logical_device, depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
   auto vertex_shader = tupi::Shader::create(
-      logical_device, "../shaders/vert.spv", tupi::Shader::Vertex);
+      logical_device, "../../../shaders/vert.spv", tupi::Shader::Vertex);
   auto fragment_shader = tupi::Shader::create(
-      logical_device, "../shaders/frag.spv", tupi::Shader::Fragment);
+      logical_device, "../../../shaders/frag.spv", tupi::Shader::Fragment);
 
   auto vertex_input = tupi::PipelineVertexInput::create<Vertex>();
   auto input_assembly = tupi::PipelineInputAssembly{};
@@ -184,24 +204,32 @@ int main() {
               VK_BLEND_OP_ADD,
               VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                   VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}});
+  auto depth_stencil_state = tupi::PipelineDepthStencilState{};
   auto dynamic_state = tupi::PipelineDynamicState{};
   auto descriptor_set_layout = tupi::DescriptorSetLayout::create(
       logical_device,
       tupi::DescriptorSetLayoutBindingVec{
           tupi::DescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                           1, VK_SHADER_STAGE_VERTEX_BIT}});
+                                           1, VK_SHADER_STAGE_VERTEX_BIT},
+          tupi::DescriptorSetLayoutBinding{
+              1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+              VK_SHADER_STAGE_FRAGMENT_BIT}});
   auto pipeline_layout = tupi::PipelineLayout::create(
       logical_device, tupi::DescriptorSetLayoutPtrVec{descriptor_set_layout});
 
-  auto attachment_descriptions =
-      tupi::AttachmentDescriptionVec{tupi::AttachmentDescription{
-          0, swapchain->format(), VK_SAMPLE_COUNT_1_BIT,
-          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-          VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR}};
-  auto subpass_description =
-      tupi::SubpassDescription(tupi::AttachmentReferenceVec{
-          VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
+  auto attachment_descriptions = tupi::AttachmentDescriptionVec{
+      {0, swapchain->format(), VK_SAMPLE_COUNT_1_BIT,
+       VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+       VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
+      {0, depth_format, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_CLEAR,
+       VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+       VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED,
+       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+  auto subpass_description = tupi::SubpassDescription(
+      tupi::AttachmentReferenceVec{
+          {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}},
+      {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
   auto subpass_descriptions = tupi::SubpassDescriptionVec{subpass_description};
   auto render_pass = tupi::RenderPass::create(
       logical_device, std::move(attachment_descriptions),
@@ -210,17 +238,23 @@ int main() {
       logical_device, tupi::ShaderPtrVec{vertex_shader, fragment_shader},
       std::move(vertex_input), input_assembly, std::move(viewport_state),
       std::move(rasterization_state), std::move(multisample_state),
-      std::move(color_blend_state), std::move(dynamic_state),
-      std::move(pipeline_layout), render_pass);
-  auto framebuffers = tupi::Framebuffer::enumerate(swapchain, render_pass);
+      std::move(color_blend_state), std::move(depth_stencil_state),
+      std::move(dynamic_state), std::move(pipeline_layout), render_pass);
+  auto framebuffers =
+      tupi::Framebuffer::enumerate(swapchain, render_pass, depth_image_view);
   auto command_pool =
       tupi::CommandPool::create(logical_device, graphics_queue_family);
 
-  const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
-  const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
+  const std::vector<Vertex> vertices = {
+      {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+      {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+      {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+      {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+      {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+      {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+      {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+      {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+  const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
   auto vertex_buffer = tupi::Buffer::create<Vertex>(
       logical_device, static_cast<uint32_t>(vertices.size()),
@@ -236,8 +270,14 @@ int main() {
   tupi::Buffer::copy<uint16_t>(indices, index_buffer, command_pool,
                                graphics_queue);
 
+  auto image = tupi::Image2D::create(command_pool, graphics_queue,
+                                     "../../../textures/statue.png");
+  auto image_view =
+      tupi::ImageView::create(logical_device, image, VK_FORMAT_R8G8B8A8_SRGB);
+  auto sampler = tupi::Sampler::create(logical_device);
+
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-  tupi::FrameVec frames;
+  tupi::FramePtrVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
   tupi::BufferPtrVec uniform_buffers;
   uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -245,10 +285,12 @@ int main() {
       logical_device,
       tupi::DescriptorPoolSizeVec{
           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+           static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)},
+          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)}},
       static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    frames.emplace_back(logical_device, command_pool);
+    frames.emplace_back(tupi::Frame::create(logical_device, command_pool));
     uniform_buffers.emplace_back(tupi::Buffer::create<UniformBufferObject>(
         logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -256,7 +298,7 @@ int main() {
   }
   auto descriptor_sets = tupi::DescriptorSet::create(
       descriptor_pool, {descriptor_set_layout, descriptor_set_layout},
-      uniform_buffers);
+      uniform_buffers, {image_view, image_view}, {sampler, sampler});
 
   // tupi::gltf::Reader reader;
   // reader.read("../models/WaterBottle/WaterBottle.gltf");
@@ -282,11 +324,11 @@ int main() {
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
     frames.at(current_frame)
-        .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
-              {descriptor_sets.at(current_frame)},
-              tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
-              static_cast<uint32_t>(vertices.size()), index_buffer, 0,
-              static_cast<uint32_t>(indices.size()));
+        ->draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
+               {descriptor_sets.at(current_frame)},
+               tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
+               static_cast<uint32_t>(vertices.size()), index_buffer, 0,
+               static_cast<uint32_t>(indices.size()));
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 

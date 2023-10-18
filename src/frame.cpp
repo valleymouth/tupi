@@ -10,13 +10,6 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
-Frame::Frame(const LogicalDevicePtr& logical_device,
-             const CommandPoolPtr& command_pool)
-    : command_buffer_(CommandBuffer(logical_device, command_pool)),
-      image_available_semaphore_(std::move(Semaphore::create(logical_device))),
-      render_finished_semaphore_(std::move(Semaphore::create(logical_device))),
-      fence_(std::move(Fence::create(logical_device, true))) {}
-
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
                  const Queue& present_queue,
@@ -38,21 +31,21 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   }
   fence_->reset();
   auto image_index = std::get<uint32_t>(acquired_result);
-  command_buffer_.reset();
+  command_buffer_->reset();
   auto& framebuffer = framebuffers.at(image_index);
-  command_buffer_.beginRenderPass(framebuffer);
-  command_buffer_.bindPipeline(pipeline);
-  command_buffer_.bindDescriptorSets(pipeline->pipelineLayout(),
-                                     descriptor_sets);
+  command_buffer_->beginRenderPass(framebuffer);
+  command_buffer_->bindPipeline(pipeline);
+  command_buffer_->bindDescriptorSets(pipeline->pipelineLayout(),
+                                      descriptor_sets);
   auto extent = framebuffer->extent();
-  command_buffer_.setViewport({0.0f, 0.0f, static_cast<float>(extent.width),
-                               static_cast<float>(extent.height), 0.0, 1.0});
-  command_buffer_.setScissor({{0, 0}, extent});
-  command_buffer_.draw(std::move(vertex_buffers), std::move(offsets),
-                       vertex_count, std::move(index_buffer), index_offset,
-                       index_count);
-  command_buffer_.endRenderPass();
-  command_buffer_.record();
+  command_buffer_->setViewport({0.0f, 0.0f, static_cast<float>(extent.width),
+                                static_cast<float>(extent.height), 0.0, 1.0});
+  command_buffer_->setScissor({{0, 0}, extent});
+  command_buffer_->draw(std::move(vertex_buffers), std::move(offsets),
+                        vertex_count, std::move(index_buffer), index_offset,
+                        index_count);
+  command_buffer_->endRenderPass();
+  command_buffer_->record();
   tupi::SemaphorePtrVec wait_semaphores = {image_available_semaphore_};
   tupi::SemaphorePtrVec signal_semaphores = {render_finished_semaphore_};
   graphics_queue.submit(command_buffer_, wait_semaphores,
@@ -69,4 +62,11 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
     throw std::runtime_error("Failed to present swap chain image!");
   }
 }
+
+Frame::Frame(const LogicalDevicePtr& logical_device,
+             const CommandPoolPtr& command_pool)
+    : command_buffer_(CommandBuffer::create(command_pool)),
+      image_available_semaphore_(std::move(Semaphore::create(logical_device))),
+      render_finished_semaphore_(std::move(Semaphore::create(logical_device))),
+      fence_(std::move(Fence::create(logical_device, true))) {}
 }  // namespace tupi

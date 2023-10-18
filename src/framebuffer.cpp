@@ -11,8 +11,8 @@ Framebuffer::~Framebuffer() {
 }
 
 auto Framebuffer::enumerate(const SwapchainPtr& swapchain,
-                            const RenderPassPtr& render_pass)
-    -> FramebufferPtrVec {
+                            const RenderPassPtr& render_pass,
+                            const ImageViewPtr& depth) -> FramebufferPtrVec {
   auto logical_device = swapchain->logicalDevice();
   auto images = swapchain->images();
   tupi::FramebufferPtrVec framebuffers;
@@ -20,9 +20,12 @@ auto Framebuffer::enumerate(const SwapchainPtr& swapchain,
   for (const auto& image : images) {
     auto image_view =
         ImageView::create(logical_device, image, swapchain->format());
+    auto image_views = tupi::ImageViewPtrVec{image_view};
+    if (depth) {
+      image_views.emplace_back(depth);
+    }
     framebuffers.emplace_back(tupi::Framebuffer::create(
-        logical_device, render_pass, tupi::ImageViewPtrVec{image_view},
-        swapchain->extent()));
+        logical_device, render_pass, image_views, swapchain->extent()));
   }
   return framebuffers;
 }

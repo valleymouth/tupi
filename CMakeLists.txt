@@ -20,7 +20,7 @@ ExternalProject_Add(
   GIT_SHALLOW ON
   CMAKE_ARGS -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
 add_library(glfw3 STATIC IMPORTED) 
-set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${EP_DEPLOY_DIR}/lib/libglfw3.a)
+set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${EP_DEPLOY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}glfw3${CMAKE_STATIC_LIBRARY_SUFFIX})
 ExternalProject_Add(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -51,10 +51,12 @@ set(SOURCES
   src/glfw/surface.cpp
   src/glfw/window.cpp
   src/image.cpp
+  src/image_2d.cpp
   src/image_view.cpp
   src/logical_device.cpp
   src/pipeline.cpp
   src/pipeline_color_blend_state.cpp
+  src/pipeline_depth_stencil_state.cpp
   src/pipeline_dynamic_state.cpp
   src/pipeline_input_assembly.cpp
   src/pipeline_layout.cpp
@@ -66,6 +68,7 @@ set(SOURCES
   src/queue.cpp
   src/queue_family.cpp
   src/render_pass.cpp
+  src/sampler.cpp
   src/semaphore.cpp
   src/shader.cpp
   src/subpass_description.cpp
@@ -74,7 +77,7 @@ set(SOURCES
 
 add_library(tupi ${SOURCES})
 message(STATUS ${Vulkan_INCLUDE_DIR})
-target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include)
+target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb)
 target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
 add_dependencies(tupi glfw glm json)
 target_compile_features(tupi PUBLIC cxx_std_20)

@@ -15,19 +15,19 @@ auto Buffer::memoryRequirements() const -> VkMemoryRequirements {
   return requirements;
 }
 
-auto Buffer::findMemoryType(const VkMemoryRequirements& requirements,
-                            VkMemoryPropertyFlags property_flags) const
-    -> uint32_t {
-  auto properties = logical_device_->physicalDevice()->memoryProperties();
-  for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
-    if ((requirements.memoryTypeBits & (1 << i)) &&
-        (properties.memoryTypes[i].propertyFlags & property_flags) ==
-            property_flags) {
-      return i;
-    }
-  }
-  throw std::runtime_error("Failed to find suitable memory type!");
-}
+// auto Buffer::findMemoryType(const VkMemoryRequirements& requirements,
+//                             VkMemoryPropertyFlags property_flags) const
+//     -> uint32_t {
+//   auto properties = logical_device_->physicalDevice()->memoryProperties();
+//   for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
+//     if ((requirements.memoryTypeBits & (1 << i)) &&
+//         (properties.memoryTypes[i].propertyFlags & property_flags) ==
+//             property_flags) {
+//       return i;
+//     }
+//   }
+//   throw std::runtime_error("Failed to find suitable memory type!");
+// }
 
 auto Buffer::map() -> void {
   if (!isMapped()) {
@@ -52,7 +52,7 @@ auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
 
 Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
                VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags)
-    : logical_device_(std::move(logical_device)), size_(size) {
+    : logical_device_(logical_device), size_(size) {
   VkBufferCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   create_info.size = size_;
@@ -68,7 +68,8 @@ Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
   VkMemoryAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   alloc_info.allocationSize = requirements.size;
-  alloc_info.memoryTypeIndex = findMemoryType(requirements, property_flags);
+  alloc_info.memoryTypeIndex =
+      logical_device->findMemoryType(requirements, property_flags);
   if (vkAllocateMemory(logical_device_->handle(), &alloc_info, nullptr,
                        &memory_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to allocate vertex buffer memory!");

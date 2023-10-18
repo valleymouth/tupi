@@ -17,7 +17,7 @@ class ImageView : public internal::Creatable<ImageView, std::shared_ptr> {
 
  protected:
   ImageView(LogicalDevicePtr logical_device, ImagePtr image,
-            const VkFormat& format);
+            const VkFormat& format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT);
   ImageView(const ImageView&) = delete;
   ImageView(ImageView&&) = delete;
   ImageView& operator=(const ImageView&) = delete;

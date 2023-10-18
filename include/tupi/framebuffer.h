@@ -18,7 +18,8 @@ class Framebuffer : public internal::Creatable<Framebuffer, std::shared_ptr> {
   auto extent() const -> VkExtent2D;
 
   static auto enumerate(const SwapchainPtr& swapchain,
-                        const RenderPassPtr& render_pass) -> FramebufferPtrVec;
+                        const RenderPassPtr& render_pass,
+                        const ImageViewPtr& depth = {}) -> FramebufferPtrVec;
 
  protected:
   Framebuffer(LogicalDevicePtr logical_device, RenderPassPtr render_pass,

@@ -4,27 +4,12 @@
 #include "tupi/command_pool.h"
 #include "tupi/descriptor_set.h"
 #include "tupi/framebuffer.h"
+#include "tupi/image_2d.h"
 #include "tupi/logical_device.h"
 #include "tupi/pipeline.h"
 #include "tupi/render_pass.h"
 
 namespace tupi {
-CommandBuffer::CommandBuffer(LogicalDevicePtr logical_device,
-                             CommandPoolPtr command_pool)
-    : logical_device_(std::move(logical_device)),
-      command_pool_(std::move(command_pool)) {
-  VkCommandBufferAllocateInfo create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  create_info.commandPool = command_pool_->handle();
-  create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  create_info.commandBufferCount = 1;
-
-  if (vkAllocateCommandBuffers(logical_device_->handle(), &create_info,
-                               &command_buffer_) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate command buffers!");
-  }
-}
-
 auto CommandBuffer::beginRenderPass(FramebufferPtr framebuffer) -> void {
   commands_.emplace_back([framebuffer_ = std::move(framebuffer)](
                              const CommandBuffer& command_buffer) {
@@ -35,9 +20,11 @@ auto CommandBuffer::beginRenderPass(FramebufferPtr framebuffer) -> void {
     begin_info.framebuffer = framebuffer_->handle();
     begin_info.renderArea.offset = {0, 0};
     begin_info.renderArea.extent = extent;
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    begin_info.clearValueCount = 1;
-    begin_info.pClearValues = &clear_color;
+    std::array<VkClearValue, 2> clear_values;
+    clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clear_values[1].depthStencil = {1.0f, 0};
+    begin_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
+    begin_info.pClearValues = clear_values.data();
 
     vkCmdBeginRenderPass(command_buffer.handle(), &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
@@ -125,6 +112,29 @@ auto CommandBuffer::copy(BufferPtr source, BufferPtr destination,
       });
 }
 
+auto CommandBuffer::copy(BufferPtr source, Image2DPtr destination) -> void {
+  commands_.emplace_back([=, source_ = std::move(source),
+                          destination_ = std::move(destination)](
+                             const CommandBuffer& command_buffer) {
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {destination_->width(), destination_->height(), 1};
+
+    vkCmdCopyBufferToImage(command_buffer.handle(), source_->handle(),
+                           destination_->handle(),
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+  });
+}
+
 auto CommandBuffer::record(const FramebufferPtr& framebuffer,
                            const PipelinePtr& pipeline) -> void {
   VkCommandBufferBeginInfo begin_info{};
@@ -193,6 +203,64 @@ auto CommandBuffer::record(VkCommandBufferUsageFlags flags) -> void {
 
   if (vkEndCommandBuffer(command_buffer_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");
+  }
+}
+
+auto CommandBuffer::transitionImageLayout(ImagePtr image, VkFormat format,
+                                          VkImageLayout from, VkImageLayout to)
+    -> void {
+  commands_.emplace_back(
+      [=, image_ = std::move(image)](const CommandBuffer& command_buffer) {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = from;
+        barrier.newLayout = to;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image_->handle();
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags source_stage;
+        VkPipelineStageFlags destination_stage;
+
+        if (from == VK_IMAGE_LAYOUT_UNDEFINED &&
+            to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+          barrier.srcAccessMask = 0;
+          barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+          source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+          destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                   to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+          barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+          source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+          destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else {
+          throw std::invalid_argument("Unsupported layout transition!");
+        }
+
+        vkCmdPipelineBarrier(command_buffer.handle(), source_stage,
+                             destination_stage, 0, 0, nullptr, 0, nullptr, 1,
+                             &barrier);
+      });
+}
+
+CommandBuffer::CommandBuffer(CommandPoolPtr command_pool)
+    : logical_device_(command_pool->logicalDevice()),
+      command_pool_(std::move(command_pool)) {
+  VkCommandBufferAllocateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  create_info.commandPool = command_pool_->handle();
+  create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  create_info.commandBufferCount = 1;
+
+  if (vkAllocateCommandBuffers(logical_device_->handle(), &create_info,
+                               &command_buffer_) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to allocate command buffers!");
   }
 }
 }  // namespace tupi

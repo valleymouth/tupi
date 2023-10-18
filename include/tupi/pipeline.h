@@ -6,6 +6,7 @@
 #include "tupi/fwd.h"
 #include "tupi/internal/creatable.h"
 #include "tupi/pipeline_color_blend_state.h"
+#include "tupi/pipeline_depth_stencil_state.h"
 #include "tupi/pipeline_dynamic_state.h"
 #include "tupi/pipeline_input_assembly.h"
 #include "tupi/pipeline_layout.h"
@@ -33,6 +34,7 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
            PipelineRasterizationState rasterization_state,
            PipelineMultisampleState multisample_state,
            PipelineColorBlendState color_blend_state,
+           PipelineDepthStencilState depth_stencil_state,
            PipelineDynamicState dynamic_state,
            PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass);
   Pipeline(const Pipeline&) = delete;
@@ -49,6 +51,7 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
   PipelineRasterizationState rasterization_state_{};
   PipelineMultisampleState multisample_state_{};
   PipelineColorBlendState color_blend_state_{};
+  PipelineDepthStencilState depth_stencil_state_{};
   PipelineDynamicState dynamic_state_{};
   PipelineLayoutPtr pipeline_layout_{};
   RenderPassPtr render_pass_{};

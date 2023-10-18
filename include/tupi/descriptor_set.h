@@ -15,7 +15,8 @@ class DescriptorSet {
 
   static auto create(DescriptorPoolPtr descriptor_pool,
                      DescriptorSetLayoutPtrVec descriptor_set_layouts,
-                     BufferPtrVec buffers) -> DescriptorSetPtrVec;
+                     BufferPtrVec buffers, ImageViewPtrVec image_views,
+                     SamplerPtrVec samplers) -> DescriptorSetPtrVec;
   static auto handles(const DescriptorSetPtrVec& descriptor_sets)
       -> std::vector<VkDescriptorSet>;
 

@@ -1,9 +1,13 @@
 #include "tupi/descriptor_set.h"
 
+#include <array>
+
 #include "tupi/buffer.h"
 #include "tupi/descriptor_pool.h"
 #include "tupi/descriptor_set_layout_binding.h"
+#include "tupi/image_view.h"
 #include "tupi/logical_device.h"
+#include "tupi/sampler.h"
 
 namespace tupi {
 auto DescriptorSet::update(const BufferPtr buffer) -> void {
@@ -29,7 +33,8 @@ auto DescriptorSet::update(const BufferPtr buffer) -> void {
 
 auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
                            DescriptorSetLayoutPtrVec descriptor_set_layouts,
-                           BufferPtrVec buffers) -> DescriptorSetPtrVec {
+                           BufferPtrVec buffers, ImageViewPtrVec image_views,
+                           SamplerPtrVec samplers) -> DescriptorSetPtrVec {
   VkDescriptorSetAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   alloc_info.descriptorPool = descriptor_pool->handle();
@@ -56,18 +61,34 @@ auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
     buffer_info.offset = 0;
     buffer_info.range = buffer->size();
 
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = vk_descriptor_set;
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &buffer_info;
-    write.pImageInfo = nullptr;        // Optional
-    write.pTexelBufferView = nullptr;  // Optional
+    VkDescriptorImageInfo image_info{};
+    image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_info.imageView = image_views.at(index)->handle();
+    image_info.sampler = samplers.at(index)->handle();
 
-    vkUpdateDescriptorSets(logical_device, 1, &write, 0, nullptr);
+    std::array<VkWriteDescriptorSet, 2> write{};
+    write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write[0].dstSet = vk_descriptor_set;
+    write[0].dstBinding = 0;
+    write[0].dstArrayElement = 0;
+    write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write[0].descriptorCount = 1;
+    write[0].pBufferInfo = &buffer_info;
+    write[0].pImageInfo = nullptr;        // Optional
+    write[0].pTexelBufferView = nullptr;  // Optional
+
+    write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write[1].dstSet = vk_descriptor_set;
+    write[1].dstBinding = 1;
+    write[1].dstArrayElement = 0;
+    write[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write[1].descriptorCount = 1;
+    write[1].pImageInfo = &image_info;
+    write[1].pBufferInfo = nullptr;       // Optional
+    write[1].pTexelBufferView = nullptr;  // Optional
+
+    vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(write.size()),
+                           write.data(), 0, nullptr);
 
     DescriptorSetPtr descriptor_set = DescriptorSetPtr{new DescriptorSet()};
     descriptor_set->descriptor_pool_ = descriptor_pool;

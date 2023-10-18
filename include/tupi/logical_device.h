@@ -26,6 +26,8 @@ class LogicalDevice
   auto physicalDevice() const -> PhysicalDevicePtr;
   auto handle() const -> VkDevice;
   auto waitIdle() const -> void;
+  auto findMemoryType(const VkMemoryRequirements& requirements,
+                      VkMemoryPropertyFlags property_flags) const -> uint32_t;
 
  protected:
   LogicalDevice(PhysicalDevicePtr physical_device,

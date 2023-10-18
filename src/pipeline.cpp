@@ -17,6 +17,7 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
                    PipelineRasterizationState rasterization_state,
                    PipelineMultisampleState multisample_state,
                    PipelineColorBlendState color_blend_state,
+                   PipelineDepthStencilState depth_stencil_state,
                    PipelineDynamicState dynamic_state,
                    PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass)
     : logical_device_(std::move(logical_device)),
@@ -27,6 +28,7 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
       rasterization_state_(std::move(rasterization_state)),
       multisample_state_(std::move(multisample_state)),
       color_blend_state_(std::move(color_blend_state)),
+      depth_stencil_state_(std::move(depth_stencil_state)),
       dynamic_state_(std::move(dynamic_state)),
       pipeline_layout_(std::move(pipeline_layout)),
       render_pass_(std::move(render_pass)) {
@@ -48,6 +50,8 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
   create_info.pDepthStencilState = nullptr;  // Optional
   auto vk_color_blend_state = color_blend_state_.pipelineCreateInfo();
   create_info.pColorBlendState = &vk_color_blend_state;
+  auto vk_depth_stencil_state = depth_stencil_state_.pipelineCreateInfo();
+  create_info.pDepthStencilState = &vk_depth_stencil_state;
   auto vk_dynamic_state = dynamic_state_.pipelineCreateInfo();
   create_info.pDynamicState = &vk_dynamic_state;
   create_info.layout = pipeline_layout_->handle();

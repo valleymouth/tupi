@@ -31,6 +31,7 @@ LogicalDevice::LogicalDevice(
   create_info.pQueueCreateInfos = vk_queue_create_infos.data();
   create_info.queueCreateInfoCount = vk_queue_create_infos.size();
   VkPhysicalDeviceFeatures device_features{};
+  device_features.samplerAnisotropy = VK_TRUE;  // TODO: how do I expose this?
   create_info.pEnabledFeatures = &device_features;
   create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   auto extension_names = extensions.toVulkan();
@@ -40,5 +41,19 @@ LogicalDevice::LogicalDevice(
                      &device_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create logical device!");
   }
+}
+
+auto LogicalDevice::findMemoryType(const VkMemoryRequirements& requirements,
+                                   VkMemoryPropertyFlags property_flags) const
+    -> uint32_t {
+  auto properties = physicalDevice()->memoryProperties();
+  for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
+    if ((requirements.memoryTypeBits & (1 << i)) &&
+        (properties.memoryTypes[i].propertyFlags & property_flags) ==
+            property_flags) {
+      return i;
+    }
+  }
+  throw std::runtime_error("Failed to find suitable memory type!");
 }
 }  // namespace tupi

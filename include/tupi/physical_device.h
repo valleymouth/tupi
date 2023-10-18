@@ -14,12 +14,21 @@ class PhysicalDevice
   friend class internal::Creatable<PhysicalDevice, std::shared_ptr>;
 
  public:
+  enum class Feature { SamplerAnisotropy };
+
   auto handle() const -> VkPhysicalDevice;
   auto deviceType() const -> VkPhysicalDeviceType;
   auto hasExtension(const std::string& name) const -> bool;
+  auto hasFeature(Feature feature) const -> bool;
   auto memoryProperties() const -> VkPhysicalDeviceMemoryProperties;
+  auto maxSamplerAnisotropy() const -> uint32_t;
+  auto findSupportedFormat(const std::vector<VkFormat>& candidates,
+                           VkImageTiling tiling, VkFormatFeatureFlags features)
+      -> VkFormat;
+  auto findDepthFormat() -> VkFormat;
 
   static auto enumerate(const EnginePtr& engine) -> PhysicalDevicePtrVec;
+  static auto hasStencilComponent(VkFormat format) -> bool;
 
  protected:
   PhysicalDevice() = default;
@@ -52,8 +61,17 @@ inline auto PhysicalDevice::memoryProperties() const
   return properties;
 }
 
+inline auto PhysicalDevice::maxSamplerAnisotropy() const -> uint32_t {
+  return properties_.limits.maxSamplerAnisotropy;
+}
+
 inline auto hasExtension(const std::string& name) {
   return std::views::filter(
       [name](const auto& x) { return x->hasExtension(name); });
+}
+
+inline auto hasFeature(PhysicalDevice::Feature feature) {
+  return std::views::filter(
+      [=](const auto& x) { return x->hasFeature(feature); });
 }
 }  // namespace tupi

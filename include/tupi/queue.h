@@ -8,11 +8,16 @@ class Queue {
   Queue(LogicalDevicePtr device, const QueueFamily& queue_family,
         uint32_t queue_index);
 
-  auto submit(const CommandBuffer& command_buffer,
+  auto submit(const CommandBufferPtr& command_buffer,
               const SemaphorePtrVec& wait_semaphores = {},
-              const PipelineStageFlagsVec& wait_states = {},
+              const PipelineStageFlagsVec& wait_stages = {},
               const SemaphorePtrVec& signal_semaphores = {},
-              const FencePtr& fence = {}, bool wait_idle = false) const -> void;
+              const FencePtr& fence = {}) const -> void;
+  auto submitAndWaitIdle(const CommandBufferPtr& command_buffer,
+                         const SemaphorePtrVec& wait_semaphores = {},
+                         const PipelineStageFlagsVec& wait_stages = {},
+                         const SemaphorePtrVec& signal_semaphores = {},
+                         const FencePtr& fence = {}) const -> void;
   auto present(const SwapchainPtr& swapchain, uint32_t image_index,
                const SemaphorePtrVec& wait_semaphores) const -> VkResult;
 
