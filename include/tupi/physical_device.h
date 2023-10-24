@@ -6,12 +6,11 @@
 
 #include "tupi/extension_set.h"
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class PhysicalDevice
-    : public internal::Creatable<PhysicalDevice, std::shared_ptr> {
-  friend class internal::Creatable<PhysicalDevice, std::shared_ptr>;
+class PhysicalDevice : public internal::SharedResource<PhysicalDevice> {
+  friend internal::SharedResource<PhysicalDevice>;
 
  public:
   enum class Feature { SamplerAnisotropy };
@@ -29,9 +28,6 @@ class PhysicalDevice
 
   static auto enumerate(const EnginePtr& engine) -> PhysicalDevicePtrVec;
   static auto hasStencilComponent(VkFormat format) -> bool;
-
- protected:
-  PhysicalDevice() = default;
 
  private:
   EnginePtr engine_{};

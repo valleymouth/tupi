@@ -3,9 +3,11 @@
 #include <iostream>
 #include <limits>
 
-#include "tupi/image.h"
+#include "tupi/framebuffer.h"
+#include "tupi/image_2d.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
+#include "tupi/physical_device.h"
 #include "tupi/semaphore.h"
 #include "tupi/surface.h"
 #include "tupi/window.h"
@@ -24,27 +26,24 @@ auto Swapchain::acquireNextImage(const SemaphorePtr& semaphore) const
   return {result, image_index};
 }
 
-auto Swapchain::recreate(SwapchainPtr& swapchain) -> void {
-  auto logical_device = swapchain->logical_device_;
-  auto swapchain_support_detail =
-      std::move(swapchain->swapchain_support_detail_);
-  auto graphics_queue_family = swapchain->graphics_queue_family_;
-  auto present_queue_family = swapchain->present_queue_family_;
-  swapchain.reset();
-  swapchain_support_detail.updateSurfaceCapabilities();
-  swapchain = Swapchain::create(std::move(logical_device),
-                                std::move(swapchain_support_detail),
-                                graphics_queue_family, present_queue_family);
+auto Swapchain::recreate() -> void {
+  vkDestroySwapchainKHR(logical_device_->handle(), swapchain_, nullptr);
+  swapchain_support_detail_.updateSurfaceCapabilities();
+  createSwapchain(static_cast<bool>(depth_image_));
 }
 
 Swapchain::Swapchain(LogicalDevicePtr logical_device,
                      SwapchainSupportDetail swapchain_support_detail,
                      const QueueFamily& graphics_queue_family,
-                     const QueueFamily& present_queue_family)
+                     const QueueFamily& present_queue_family, bool depth)
     : logical_device_(std::move(logical_device)),
       swapchain_support_detail_(std::move(swapchain_support_detail)),
       graphics_queue_family_(graphics_queue_family),
       present_queue_family_(present_queue_family) {
+  createSwapchain(depth);
+}
+
+auto Swapchain::createSwapchain(bool depth) -> void {
   const auto& physical_device = swapchain_support_detail_.physicalDevice();
   const auto& surface = swapchain_support_detail_.surface();
   const auto capabilities = swapchain_support_detail_.surfaceCapabilities();
@@ -67,7 +66,6 @@ Swapchain::Swapchain(LogicalDevicePtr logical_device,
       swapchain_support_detail_.surface()->window()->extent();
   auto extent = swapchain_support_detail_.swapchainExtent(
       frame_buffer_extent.width, frame_buffer_extent.height);
-  // std::cout << extent.width << " " << extent.height << std::endl;
 
   VkSwapchainCreateInfoKHR create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -79,9 +77,9 @@ Swapchain::Swapchain(LogicalDevicePtr logical_device,
   create_info.imageArrayLayers = 1;  // greater than one for stereoscopic 3D.
   create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  uint32_t queue_family_indices[] = {graphics_queue_family.index(),
-                                     present_queue_family.index()};
-  if (graphics_queue_family.index() != present_queue_family.index()) {
+  uint32_t queue_family_indices[] = {graphics_queue_family_.index(),
+                                     present_queue_family_.index()};
+  if (graphics_queue_family_.index() != present_queue_family_.index()) {
     create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     create_info.queueFamilyIndexCount = 2;
     create_info.pQueueFamilyIndices = queue_family_indices;
@@ -103,6 +101,16 @@ Swapchain::Swapchain(LogicalDevicePtr logical_device,
 
   extent_ = extent;
   format_ = surface_format.value().format;
-  images_ = Image::enumerate(*this);
+  images_ = Image2D::enumerate(*this);
+
+  // Depth buffer
+  if (depth) {
+    auto depth_format = physical_device->findDepthFormat();
+    auto depth_image_info = tupi::ImageInfo2D(
+        depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
+    depth_image_ = tupi::Image2D::create(logical_device_, depth_image_info);
+    depth_image_view_ = tupi::ImageView::create(
+        logical_device_, depth_image_, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+  }
 }
 }  // namespace tupi

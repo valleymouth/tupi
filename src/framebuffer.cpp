@@ -1,5 +1,6 @@
 #include "tupi/framebuffer.h"
 
+#include "tupi/image_2d.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/render_pass.h"
@@ -10,22 +11,22 @@ Framebuffer::~Framebuffer() {
   vkDestroyFramebuffer(logical_device_->handle(), framebuffer_, nullptr);
 }
 
-auto Framebuffer::enumerate(const SwapchainPtr& swapchain,
-                            const RenderPassPtr& render_pass,
-                            const ImageViewPtr& depth) -> FramebufferPtrVec {
-  auto logical_device = swapchain->logicalDevice();
-  auto images = swapchain->images();
+auto Framebuffer::enumerate(const Swapchain& swapchain,
+                            const RenderPassPtr& render_pass)
+    -> FramebufferPtrVec {
+  auto logical_device = swapchain.logicalDevice();
+  auto images = swapchain.images();
   tupi::FramebufferPtrVec framebuffers;
   framebuffers.reserve(images.size());
-  for (const auto& image : images) {
+  for (auto& image : images) {
     auto image_view =
-        ImageView::create(logical_device, image, swapchain->format());
+        ImageView::create(logical_device, image, swapchain.format());
     auto image_views = tupi::ImageViewPtrVec{image_view};
-    if (depth) {
-      image_views.emplace_back(depth);
+    if (swapchain.hasDepth()) {
+      image_views.emplace_back(swapchain.depthImageView());
     }
     framebuffers.emplace_back(tupi::Framebuffer::create(
-        logical_device, render_pass, image_views, swapchain->extent()));
+        logical_device, render_pass, image_views, swapchain.extent()));
   }
   return framebuffers;
 }

@@ -7,6 +7,7 @@
 
 #include "tupi/buffer.h"
 #include "tupi/command_buffer.h"
+#include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/swapchain.h"
 
@@ -14,6 +15,42 @@ namespace tupi {
 Image2D::~Image2D() {
   vkDestroyImage(logical_device()->handle(), handle(), nullptr);
   vkFreeMemory(logical_device()->handle(), memory_, nullptr);
+}
+
+auto Image2D::resize(const VkExtent2D& extent) -> void {
+  std::erase_if(image_views, [](auto&& x) { return x.expired(); });
+  for (const auto& image_view : image_views) {
+    auto shared = image_view.lock();
+    // shared->resize(extent);
+  }
+}
+
+auto Image2D::enumerate(const Swapchain& swapchain) -> Image2DPtrVec {
+  uint32_t count;
+  const auto& logical_device = swapchain.logicalDevice();
+  vkGetSwapchainImagesKHR(logical_device->handle(), swapchain.handle(), &count,
+                          nullptr);
+  std::vector<VkImage> images(count);
+  vkGetSwapchainImagesKHR(logical_device->handle(), swapchain.handle(), &count,
+                          images.data());
+  Image2DPtrVec result;
+  result.reserve(count);
+  for (const auto& vk_image : images) {
+    auto& image = result.emplace_back(
+        std::shared_ptr<Image2D>(new Image2D(logical_device, vk_image)));
+    image->info_.format = swapchain.format();
+    image->info_.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    image->info_.extent = swapchain.extent();
+    auto sharing_mode = swapchain.sharingMode();
+    image->info_.sharing_mode = sharing_mode;
+    if (sharing_mode == VK_SHARING_MODE_CONCURRENT) {
+      image->info_.queue_family_indices.push_back(
+          swapchain.graphicsQueueFamilyIndex());
+      image->info_.queue_family_indices.push_back(
+          swapchain.presentQueueFamilyIndex());
+    }
+  }
+  return result;
 }
 
 auto Image2D::create(LogicalDevicePtr logical_device, const ImageInfo2D& info)
@@ -117,18 +154,5 @@ auto Image2D::create(const CommandPoolPtr& command_pool, const Queue& queue,
   }
 
   return result;
-}
-
-Image2D::Image2D(Image2D&& other)
-    : Image(std::move(other)), info_(other.info_), memory_(other.memory_) {
-  other.memory_ = VK_NULL_HANDLE;
-}
-
-auto Image2D::operator=(Image2D&& other) -> Image& {
-  Image::operator=(std::move(other));
-  info_ = other.info_;
-  memory_ = other.memory_;
-  other.memory_ = VK_NULL_HANDLE;
-  return *this;
 }
 }  // namespace tupi

@@ -13,15 +13,16 @@ class Image {
   auto handle() const -> VkImage;
   auto logical_device() const -> LogicalDevicePtr;
 
-  static auto enumerate(const Swapchain& swapchain) -> ImagePtrVec;
-
  protected:
   Image(LogicalDevicePtr logical_device, VkImage image)
       : logical_device_(std::move(logical_device)), image_(image) {}
-  Image(const Image&) = default;
-  Image(Image&& other);
-  auto operator=(const Image&) -> Image& = default;
-  auto operator=(Image&& other) -> Image&;
+  Image(const Image&) = delete;
+  Image(Image&&) = delete;
+  auto operator=(const Image&) -> Image& = delete;
+  auto operator=(Image&&) -> Image& = delete;
+
+ public:
+  ImageViewWeakPtrVec image_views{};
 
  private:
   LogicalDevicePtr logical_device_{};

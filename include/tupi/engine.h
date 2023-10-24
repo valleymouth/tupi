@@ -6,11 +6,11 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class Engine : public internal::Creatable<Engine, std::shared_ptr> {
-  friend class internal::Creatable<Engine, std::shared_ptr>;
+class Engine : public internal::SharedResource<Engine> {
+  friend internal::SharedResource<Engine>;
 
  public:
   ~Engine();

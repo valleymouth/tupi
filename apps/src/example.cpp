@@ -174,15 +174,6 @@ int main() {
       tupi::Swapchain::create(logical_device, swapchain_support_detail,
                               graphics_queue_family, present_queue_family);
 
-  // Depth buffer
-  auto depth_format = physical_device->findDepthFormat();
-  auto depth_image_info = tupi::ImageInfo2D(
-      depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-      swapchain->extent());
-  auto depth_image = tupi::Image2D::create(logical_device, depth_image_info);
-  auto depth_image_view = tupi::ImageView::create(
-      logical_device, depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
-
   auto vertex_shader = tupi::Shader::create(
       logical_device, "../../../shaders/vert.spv", tupi::Shader::Vertex);
   auto fragment_shader = tupi::Shader::create(
@@ -222,9 +213,10 @@ int main() {
        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
        VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
-      {0, depth_format, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_CLEAR,
-       VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-       VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED,
+      {0, physical_device->findDepthFormat(), VK_SAMPLE_COUNT_1_BIT,
+       VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+       VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+       VK_IMAGE_LAYOUT_UNDEFINED,
        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
   auto subpass_description = tupi::SubpassDescription(
       tupi::AttachmentReferenceVec{
@@ -240,8 +232,7 @@ int main() {
       std::move(rasterization_state), std::move(multisample_state),
       std::move(color_blend_state), std::move(depth_stencil_state),
       std::move(dynamic_state), std::move(pipeline_layout), render_pass);
-  auto framebuffers =
-      tupi::Framebuffer::enumerate(swapchain, render_pass, depth_image_view);
+  auto framebuffers = tupi::Framebuffer::enumerate(*swapchain, render_pass);
   auto command_pool =
       tupi::CommandPool::create(logical_device, graphics_queue_family);
 

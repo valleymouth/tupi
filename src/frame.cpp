@@ -23,8 +23,8 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   auto result = std::get<VkResult>(acquired_result);
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     swapchain->logicalDevice()->waitIdle();
-    Swapchain::recreate(swapchain);
-    framebuffers = Framebuffer::enumerate(swapchain, pipeline->renderPass());
+    swapchain->recreate();
+    framebuffers = Framebuffer::enumerate(*swapchain, pipeline->renderPass());
     return;
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("Failed to acquire swap chain image!");
@@ -56,8 +56,8 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   if (present_result == VK_ERROR_OUT_OF_DATE_KHR ||
       present_result == VK_SUBOPTIMAL_KHR) {
     swapchain->logicalDevice()->waitIdle();
-    Swapchain::recreate(swapchain);
-    framebuffers = Framebuffer::enumerate(swapchain, pipeline->renderPass());
+    swapchain->recreate();
+    framebuffers = Framebuffer::enumerate(*swapchain, pipeline->renderPass());
   } else if (present_result != VK_SUCCESS) {
     throw std::runtime_error("Failed to present swap chain image!");
   }

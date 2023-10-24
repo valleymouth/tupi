@@ -14,10 +14,12 @@ class ImageView : public internal::Creatable<ImageView, std::shared_ptr> {
   ~ImageView();
 
   auto handle() const -> VkImageView;
+  auto resize(const VkExtent2D& extent) -> void;
 
  protected:
   ImageView(LogicalDevicePtr logical_device, ImagePtr image,
-            const VkFormat& format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT);
+            const VkFormat& format,
+            VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT);
   ImageView(const ImageView&) = delete;
   ImageView(ImageView&&) = delete;
   ImageView& operator=(const ImageView&) = delete;

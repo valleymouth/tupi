@@ -50,7 +50,6 @@ set(SOURCES
   src/framebuffer.cpp
   src/glfw/surface.cpp
   src/glfw/window.cpp
-  src/image.cpp
   src/image_2d.cpp
   src/image_view.cpp
   src/logical_device.cpp
@@ -76,10 +75,10 @@ set(SOURCES
   src/swapchain_support_detail.cpp)
 
 add_library(tupi ${SOURCES})
-message(STATUS ${Vulkan_INCLUDE_DIR})
 target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb)
 target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
 add_dependencies(tupi glfw glm json)
 target_compile_features(tupi PUBLIC cxx_std_20)
 
 add_subdirectory(apps)
+add_subdirectory(tests)

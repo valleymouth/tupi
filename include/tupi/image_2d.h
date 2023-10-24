@@ -9,8 +9,8 @@
 namespace tupi {
 /// @brief Image has too many parameters.
 struct ImageInfo2D {
-  VkFormat format;
-  VkImageUsageFlags usage;
+  VkFormat format{VK_FORMAT_UNDEFINED};
+  VkImageUsageFlags usage{0};
   VkExtent2D extent{0, 0};
   uint32_t mip_levels{1};
   uint32_t array_layers{1};
@@ -21,6 +21,7 @@ struct ImageInfo2D {
   VkImageLayout initial_layout{VK_IMAGE_LAYOUT_UNDEFINED};
   std::vector<uint32_t> queue_family_indices;
 
+  ImageInfo2D() = default;
   ImageInfo2D(VkFormat format, VkImageUsageFlags usage, VkExtent2D extent)
       : format(format), usage(usage), extent(extent) {}
 };
@@ -31,23 +32,27 @@ class Image2D : public Image {
 
   auto width() const -> uint32_t;
   auto height() const -> uint32_t;
+  auto resize(const VkExtent2D& extent) -> void;
 
+  static auto enumerate(const Swapchain& swapchain) -> Image2DPtrVec;
   static auto create(LogicalDevicePtr logical_device, const ImageInfo2D& info)
       -> Image2DPtr;
   static auto create(const CommandPoolPtr& command_pool, const Queue& queue,
                      const std::filesystem::path& path) -> Image2DPtr;
 
  protected:
+  Image2D(LogicalDevicePtr logical_device, VkImage image)
+      : Image(std::move(logical_device), image) {}
   Image2D(LogicalDevicePtr logical_device, VkImage image,
           const ImageInfo2D& info)
       : Image(std::move(logical_device), image), info_(info) {}
   Image2D(const Image2D&) = delete;
-  Image2D(Image2D&&);
+  Image2D(Image2D&&) = delete;
   auto operator=(const Image2D&) -> Image& = delete;
-  auto operator=(Image2D&& other) -> Image&;
+  auto operator=(Image2D&&) -> Image& = delete;
 
  private:
-  ImageInfo2D info_;
+  ImageInfo2D info_{};
   VkDeviceMemory memory_{VK_NULL_HANDLE};
 };
 

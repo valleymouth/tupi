@@ -1,0 +1,10 @@
+function(tupi_add_test exe_name sources test_name)
+    add_executable(${exe_name} ${sources})
+    target_include_directories(${exe_name} PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE ../include ../include/third_party/stb)
+    target_link_libraries(${exe_name} glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
+    add_dependencies(${exe_name} glfw glm json)
+    target_compile_features(${exe_name} PUBLIC cxx_std_20)
+    add_test(NAME ${test_name} COMMAND ${exe_name})
+endfunction()
+
+tupi_add_test(resource_test resource.cpp resource)

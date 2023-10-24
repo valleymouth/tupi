@@ -6,13 +6,12 @@
 
 #include "tupi/extension_set.h"
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 #include "tupi/queue_family.h"
 
 namespace tupi {
-class LogicalDevice
-    : public internal::Creatable<LogicalDevice, std::shared_ptr> {
-  friend class internal::Creatable<LogicalDevice, std::shared_ptr>;
+class LogicalDevice : public internal::SharedResource<LogicalDevice> {
+  friend internal::SharedResource<LogicalDevice>;
 
  public:
   struct QueueCreateInfo {
