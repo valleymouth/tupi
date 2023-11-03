@@ -33,3 +33,9 @@
 
 # Emacs
 *~
+
+# Build folder
+build/
+
+# CMake files
+CMakeFiles/
