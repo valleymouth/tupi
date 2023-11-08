@@ -3,14 +3,13 @@
 #include <memory>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 #include "tupi/logical_device.h"
 
 namespace tupi {
-class Fence : public internal::Creatable<Fence, std::shared_ptr> {
-  friend class internal::Creatable<Fence, std::shared_ptr>;
-
+class Fence : public internal::SharedResource<Fence> {
  public:
+  Fence(Token, LogicalDevicePtr logical_device, bool create_signaled = false);
   ~Fence();
 
   auto handle() const -> VkFence;
@@ -18,7 +17,6 @@ class Fence : public internal::Creatable<Fence, std::shared_ptr> {
   auto reset() const -> void;
 
  protected:
-  Fence(LogicalDevicePtr logical_device, bool create_signaled = false);
   Fence(const Fence&) = delete;
   Fence(Fence&&) = delete;
   Fence& operator=(const Fence&) = delete;

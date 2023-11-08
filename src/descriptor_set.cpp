@@ -4,10 +4,10 @@
 
 #include "tupi/buffer.h"
 #include "tupi/descriptor_pool.h"
-#include "tupi/descriptor_set_layout_binding.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/sampler.h"
+#include "tupi/utility.h"
 
 namespace tupi {
 auto DescriptorSet::update(const BufferPtr buffer) -> void {
@@ -40,8 +40,7 @@ auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
   alloc_info.descriptorPool = descriptor_pool->handle();
   alloc_info.descriptorSetCount =
       static_cast<uint32_t>(descriptor_set_layouts.size());
-  auto vk_descriptor_set_layouts =
-      DescriptorSetLayout::handles(descriptor_set_layouts);
+  auto vk_descriptor_set_layouts = handles(descriptor_set_layouts);
   alloc_info.pSetLayouts = vk_descriptor_set_layouts.data();
   std::vector<VkDescriptorSet> vk_descriptor_sets;
   vk_descriptor_sets.resize(descriptor_set_layouts.size());
@@ -101,15 +100,4 @@ auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
   }
   return result;
 }
-
-auto DescriptorSet::handles(const DescriptorSetPtrVec& descriptor_sets)
-    -> std::vector<VkDescriptorSet> {
-  std::vector<VkDescriptorSet> result;
-  result.reserve(descriptor_sets.size());
-  for (const auto& descriptor_set : descriptor_sets) {
-    result.emplace_back(descriptor_set->handle());
-  }
-  return result;
-}
-
 }  // namespace tupi

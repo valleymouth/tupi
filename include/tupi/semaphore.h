@@ -3,13 +3,12 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class Semaphore : public internal::Creatable<Semaphore, std::shared_ptr> {
-  friend class internal::Creatable<Semaphore, std::shared_ptr>;
-
+class Semaphore : public internal::SharedResource<Semaphore> {
  public:
+  Semaphore(Token, LogicalDevicePtr logical_device);
   ~Semaphore();
 
   auto handle() const -> VkSemaphore;
@@ -18,7 +17,6 @@ class Semaphore : public internal::Creatable<Semaphore, std::shared_ptr> {
       -> std::vector<VkSemaphore>;
 
  protected:
-  Semaphore(LogicalDevicePtr logical_device);
   Semaphore(const Semaphore&) = delete;
   Semaphore(Semaphore&&) = delete;
   Semaphore& operator=(const Semaphore&) = delete;

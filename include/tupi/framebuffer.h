@@ -4,13 +4,13 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class Framebuffer : public internal::Creatable<Framebuffer, std::shared_ptr> {
-  friend class internal::Creatable<Framebuffer, std::shared_ptr>;
-
+class Framebuffer : public internal::SharedResource<Framebuffer> {
  public:
+  Framebuffer(Token, LogicalDevicePtr logical_device, RenderPassPtr render_pass,
+              ImageViewPtrVec image_views, VkExtent2D extent);
   ~Framebuffer();
 
   auto handle() const -> VkFramebuffer;
@@ -21,8 +21,6 @@ class Framebuffer : public internal::Creatable<Framebuffer, std::shared_ptr> {
                         const RenderPassPtr& render_pass) -> FramebufferPtrVec;
 
  protected:
-  Framebuffer(LogicalDevicePtr logical_device, RenderPassPtr render_pass,
-              ImageViewPtrVec image_views, VkExtent2D extent);
   Framebuffer(const Framebuffer&) = delete;
   Framebuffer(Framebuffer&&) = delete;
   Framebuffer& operator=(const Framebuffer&) = delete;

@@ -6,11 +6,7 @@
 #include "tupi/engine.h"
 
 namespace tupi::glfw {
-Surface::~Surface() {
-  vkDestroySurfaceKHR(engine_->handle(), surface_, nullptr);
-}
-
-Surface::Surface(EnginePtr engine, WindowPtr window)
+Surface::Surface(Token, EnginePtr engine, WindowPtr window)
     : engine_(std::move(engine)), window_(std::move(window)) {
   auto glfw_window = std::dynamic_pointer_cast<Window>(window_);
   if (!glfw_window) {
@@ -22,5 +18,9 @@ Surface::Surface(EnginePtr engine, WindowPtr window)
                               &surface_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create window surface!");
   }
+}
+
+Surface::~Surface() {
+  vkDestroySurfaceKHR(engine_->handle(), surface_, nullptr);
 }
 }  // namespace tupi::glfw

@@ -4,10 +4,8 @@
 #include "tupi/queue_family.h"
 
 namespace tupi {
-LogicalDevice::~LogicalDevice() { vkDestroyDevice(device_, nullptr); }
-
 LogicalDevice::LogicalDevice(
-    PhysicalDevicePtr physical_device,
+    Token, PhysicalDevicePtr physical_device,
     const std::vector<QueueCreateInfo>& queue_create_infos,
     const ExtensionSet& extensions)
     : physical_device_(std::move(physical_device)) {
@@ -42,6 +40,8 @@ LogicalDevice::LogicalDevice(
     throw std::runtime_error("Failed to create logical device!");
   }
 }
+
+LogicalDevice::~LogicalDevice() { vkDestroyDevice(device_, nullptr); }
 
 auto LogicalDevice::findMemoryType(const VkMemoryRequirements& requirements,
                                    VkMemoryPropertyFlags property_flags) const

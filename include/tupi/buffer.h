@@ -5,7 +5,6 @@
 #include "tupi/command_buffer.h"
 #include "tupi/command_pool.h"
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
 #include "tupi/logical_device.h"
 #include "tupi/queue.h"
 
@@ -17,9 +16,6 @@ class Buffer {
   auto handle() const -> VkBuffer;
   auto size() const -> VkDeviceSize;
   auto memoryRequirements() const -> VkMemoryRequirements;
-  // auto findMemoryType(const VkMemoryRequirements& requirements,
-  //                     VkMemoryPropertyFlags property_flags) const ->
-  //                     uint32_t;
   auto isMapped() const -> bool;
   auto map() -> void;
   auto unmap() -> void;

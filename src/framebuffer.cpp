@@ -7,31 +7,7 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
-Framebuffer::~Framebuffer() {
-  vkDestroyFramebuffer(logical_device_->handle(), framebuffer_, nullptr);
-}
-
-auto Framebuffer::enumerate(const Swapchain& swapchain,
-                            const RenderPassPtr& render_pass)
-    -> FramebufferPtrVec {
-  auto logical_device = swapchain.logicalDevice();
-  auto images = swapchain.images();
-  tupi::FramebufferPtrVec framebuffers;
-  framebuffers.reserve(images.size());
-  for (auto& image : images) {
-    auto image_view =
-        ImageView::create(logical_device, image, swapchain.format());
-    auto image_views = tupi::ImageViewPtrVec{image_view};
-    if (swapchain.hasDepth()) {
-      image_views.emplace_back(swapchain.depthImageView());
-    }
-    framebuffers.emplace_back(tupi::Framebuffer::create(
-        logical_device, render_pass, image_views, swapchain.extent()));
-  }
-  return framebuffers;
-}
-
-Framebuffer::Framebuffer(LogicalDevicePtr logical_device,
+Framebuffer::Framebuffer(Token, LogicalDevicePtr logical_device,
                          RenderPassPtr render_pass, ImageViewPtrVec image_views,
                          VkExtent2D extent)
     : logical_device_(std::move(logical_device)),
@@ -57,5 +33,29 @@ Framebuffer::Framebuffer(LogicalDevicePtr logical_device,
                           &framebuffer_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create framebuffer!");
   }
+}
+
+Framebuffer::~Framebuffer() {
+  vkDestroyFramebuffer(logical_device_->handle(), framebuffer_, nullptr);
+}
+
+auto Framebuffer::enumerate(const Swapchain& swapchain,
+                            const RenderPassPtr& render_pass)
+    -> FramebufferPtrVec {
+  auto logical_device = swapchain.logicalDevice();
+  auto images = swapchain.images();
+  tupi::FramebufferPtrVec framebuffers;
+  framebuffers.reserve(images.size());
+  for (auto& image : images) {
+    auto image_view =
+        ImageView::create(logical_device, image, swapchain.format());
+    auto image_views = tupi::ImageViewPtrVec{image_view};
+    if (swapchain.hasDepth()) {
+      image_views.emplace_back(swapchain.depthImageView());
+    }
+    framebuffers.emplace_back(tupi::Framebuffer::create(
+        logical_device, render_pass, image_views, swapchain.extent()));
+  }
+  return framebuffers;
 }
 }  // namespace tupi

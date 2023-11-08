@@ -4,21 +4,19 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class RenderPass : public internal::Creatable<RenderPass, std::shared_ptr> {
-  friend class internal::Creatable<RenderPass, std::shared_ptr>;
-
+class RenderPass : public internal::SharedResource<RenderPass> {
  public:
+  RenderPass(Token, LogicalDevicePtr logical_device,
+             AttachmentDescriptionVec attachments,
+             SubpassDescriptionVec subpasses);
   ~RenderPass();
 
   auto handle() const -> VkRenderPass;
 
  protected:
-  RenderPass(LogicalDevicePtr logical_device,
-             AttachmentDescriptionVec attachments,
-             SubpassDescriptionVec subpasses);
   RenderPass(const RenderPass&) = delete;
   RenderPass(RenderPass&&) = delete;
   RenderPass& operator=(const RenderPass&) = delete;

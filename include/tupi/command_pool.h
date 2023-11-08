@@ -4,20 +4,19 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class CommandPool : public internal::Creatable<CommandPool, std::shared_ptr> {
-  friend class internal::Creatable<CommandPool, std::shared_ptr>;
-
+class CommandPool : public internal::SharedResource<CommandPool> {
  public:
+  CommandPool(Token, LogicalDevicePtr logical_device,
+              const QueueFamily& queue_family);
   ~CommandPool();
 
   auto handle() const -> VkCommandPool;
   auto logicalDevice() const -> LogicalDevicePtr;
 
  protected:
-  CommandPool(LogicalDevicePtr logical_device, const QueueFamily& queue_family);
   CommandPool(const CommandPool&) = delete;
   CommandPool(CommandPool&&) = delete;
   CommandPool& operator=(const CommandPool&) = delete;

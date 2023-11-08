@@ -4,11 +4,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-ImageView::~ImageView() {
-  vkDestroyImageView(logical_device_->handle(), image_view_, nullptr);
-}
-
-ImageView::ImageView(LogicalDevicePtr logical_device, ImagePtr image,
+ImageView::ImageView(Token, LogicalDevicePtr logical_device, ImagePtr image,
                      const VkFormat& format, VkImageAspectFlags aspect_flags)
     : logical_device_(std::move(logical_device)), image_(std::move(image)) {
   VkImageViewCreateInfo create_info{};
@@ -29,5 +25,9 @@ ImageView::ImageView(LogicalDevicePtr logical_device, ImagePtr image,
                         &image_view_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create image views!");
   }
+}
+
+ImageView::~ImageView() {
+  vkDestroyImageView(logical_device_->handle(), image_view_, nullptr);
 }
 }  // namespace tupi

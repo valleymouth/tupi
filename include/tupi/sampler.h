@@ -3,20 +3,18 @@
 #include <memory>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class Sampler : public internal::Creatable<Sampler, std::shared_ptr> {
-  friend class internal::Creatable<Sampler, std::shared_ptr>;
-
+class Sampler : public internal::SharedResource<Sampler> {
  public:
+  Sampler(Token, LogicalDevicePtr logical_device);
   ~Sampler();
 
   auto handle() const -> VkSampler;
   auto logicalDevice() const -> LogicalDevicePtr;
 
  protected:
-  Sampler(LogicalDevicePtr logical_device);
   Sampler(const Sampler&) = delete;
   Sampler(Sampler&& other);
   auto operator=(const Sampler&) -> Sampler& = delete;

@@ -1,5 +1,7 @@
 #include "tupi/command_buffer.h"
 
+#include <vector>
+
 #include "tupi/buffer.h"
 #include "tupi/command_pool.h"
 #include "tupi/descriptor_set.h"
@@ -8,8 +10,29 @@
 #include "tupi/logical_device.h"
 #include "tupi/pipeline.h"
 #include "tupi/render_pass.h"
+#include "tupi/utility.h"
 
 namespace tupi {
+CommandBuffer::CommandBuffer(Token, CommandPoolPtr command_pool)
+    : logical_device_(command_pool->logicalDevice()),
+      command_pool_(std::move(command_pool)) {
+  VkCommandBufferAllocateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  create_info.commandPool = command_pool_->handle();
+  create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  create_info.commandBufferCount = 1;
+
+  if (vkAllocateCommandBuffers(logical_device_->handle(), &create_info,
+                               &command_buffer_) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to allocate command buffers!");
+  }
+}
+
+CommandBuffer::~CommandBuffer() {
+  vkFreeCommandBuffers(logical_device_->handle(), command_pool_->handle(), 1,
+                       &command_buffer_);
+}
+
 auto CommandBuffer::beginRenderPass(FramebufferPtr framebuffer) -> void {
   commands_.emplace_back([framebuffer_ = std::move(framebuffer)](
                              const CommandBuffer& command_buffer) {
@@ -29,11 +52,6 @@ auto CommandBuffer::beginRenderPass(FramebufferPtr framebuffer) -> void {
     vkCmdBeginRenderPass(command_buffer.handle(), &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
   });
-}
-
-CommandBuffer::~CommandBuffer() {
-  vkFreeCommandBuffers(logical_device_->handle(), command_pool_->handle(), 1,
-                       &command_buffer_);
 }
 
 auto CommandBuffer::endRenderPass() -> void {
@@ -56,7 +74,8 @@ auto CommandBuffer::bindDescriptorSets(PipelineLayoutPtr pipeline_layout,
   commands_.emplace_back([pipeline_layout_ = std::move(pipeline_layout),
                           descriptor_sets_ = std::move(descriptor_sets)](
                              const CommandBuffer& command_buffer) {
-    auto vk_descriptor_sets = DescriptorSet::handles(descriptor_sets_);
+    auto vk_descriptor_sets =
+        std::vector<VkDescriptorSet>(handles(descriptor_sets_));
     vkCmdBindDescriptorSets(command_buffer.handle(),
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline_layout_->handle(), 0,
@@ -249,18 +268,4 @@ auto CommandBuffer::transitionImageLayout(ImagePtr image, VkFormat format,
       });
 }
 
-CommandBuffer::CommandBuffer(CommandPoolPtr command_pool)
-    : logical_device_(command_pool->logicalDevice()),
-      command_pool_(std::move(command_pool)) {
-  VkCommandBufferAllocateInfo create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  create_info.commandPool = command_pool_->handle();
-  create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  create_info.commandBufferCount = 1;
-
-  if (vkAllocateCommandBuffers(logical_device_->handle(), &create_info,
-                               &command_buffer_) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate command buffers!");
-  }
-}
 }  // namespace tupi

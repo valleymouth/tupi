@@ -5,9 +5,7 @@
 #include "tupi/extension_set.h"
 
 namespace tupi {
-Engine::~Engine() { vkDestroyInstance(instance_, nullptr); }
-
-Engine::Engine(const std::string& app_name, uint32_t app_version,
+Engine::Engine(Token, const std::string& app_name, uint32_t app_version,
                const ExtensionSet& extensions,
                const std::vector<const char*>& validation_layers) {
   VkApplicationInfo vk_app_info{VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -39,4 +37,6 @@ Engine::Engine(const std::string& app_name, uint32_t app_version,
     throw std::runtime_error("Failed to create Vulkan instance!");
   }
 }
+
+Engine::~Engine() { vkDestroyInstance(instance_, nullptr); }
 }  // namespace tupi

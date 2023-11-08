@@ -1,29 +1,33 @@
 #pragma once
 
 #include <memory>
-#include <ranges>
 
 namespace tupi::internal {
-template <typename T, template <typename> typename P>
-class Resource {
+template <typename T>
+class UniqueResource {
+ protected:
+  class Token {};
+
  public:
-  using Pointer = P<T>;
+  using Pointer = std::unique_ptr<T>;
 
   template <typename... Ts>
   static auto create(Ts&&... args) -> Pointer {
-    auto result = P<T>(new T(std::forward<Ts>(args)...));
-    return result;
-  }
-
-  template <typename R>
-  static auto handles(const R& range) {
-    return range | std::views::transform([](auto&& x) { return x->handle(); });
+    return std::make_unique<T>(Token{}, std::forward<Ts>(args)...);
   }
 };
 
 template <typename T>
-using UniqueResource = Resource<T, std::unique_ptr>;
+class SharedResource {
+ protected:
+  class Token {};
 
-template <typename T>
-using SharedResource = Resource<T, std::shared_ptr>;
+ public:
+  using Pointer = std::shared_ptr<T>;
+
+  template <typename... Ts>
+  static auto create(Ts&&... args) -> Pointer {
+    return std::make_shared<T>(Token{}, std::forward<Ts>(args)...);
+  }
+};
 }  // namespace tupi::internal

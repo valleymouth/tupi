@@ -5,22 +5,19 @@
 
 #include "tupi/fwd.h"
 #include "tupi/glfw/window.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 #include "tupi/surface.h"
 
 namespace tupi::glfw {
-class Surface : public ISurface,
-                public internal::Creatable<Surface, std::shared_ptr> {
-  friend class Creatable<Surface, std::shared_ptr>;
-
+class Surface : public ISurface, public internal::SharedResource<Surface> {
  public:
+  Surface(Token, EnginePtr engine, WindowPtr window);
   ~Surface();
 
   auto handle() const -> VkSurfaceKHR override;
   auto window() const -> IWindowPtr override;
 
  protected:
-  Surface(EnginePtr engine, WindowPtr window);
   Surface(const Surface&) = delete;
   Surface(Surface&&) = delete;
   Surface& operator=(const Surface&) = delete;

@@ -10,10 +10,10 @@
 
 namespace tupi {
 class PhysicalDevice : public internal::SharedResource<PhysicalDevice> {
-  friend internal::SharedResource<PhysicalDevice>;
-
  public:
   enum class Feature { SamplerAnisotropy };
+
+  explicit PhysicalDevice(Token) {}
 
   auto handle() const -> VkPhysicalDevice;
   auto deviceType() const -> VkPhysicalDeviceType;

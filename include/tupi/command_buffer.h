@@ -4,13 +4,12 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 
 namespace tupi {
-class CommandBuffer : public internal::Creatable<CommandBuffer> {
-  friend class internal::Creatable<CommandBuffer>;
-
+class CommandBuffer : public internal::UniqueResource<CommandBuffer> {
  public:
+  CommandBuffer(Token, CommandPoolPtr command_pool);
   ~CommandBuffer();
 
   auto handle() const -> VkCommandBuffer;
@@ -34,9 +33,6 @@ class CommandBuffer : public internal::Creatable<CommandBuffer> {
   auto record(VkCommandBufferUsageFlags flags = 0) -> void;
   auto transitionImageLayout(ImagePtr image, VkFormat format,
                              VkImageLayout from, VkImageLayout to) -> void;
-
- protected:
-  CommandBuffer(CommandPoolPtr command_pool);
 
  private:
   using Command = std::function<void(const CommandBuffer&)>;

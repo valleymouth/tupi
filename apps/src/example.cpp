@@ -14,7 +14,6 @@
 #include "tupi/descriptor_pool.h"
 #include "tupi/descriptor_set.h"
 #include "tupi/descriptor_set_layout.h"
-#include "tupi/descriptor_set_layout_binding.h"
 #include "tupi/engine.h"
 #include "tupi/extension_set.h"
 #include "tupi/fence.h"
@@ -268,7 +267,7 @@ int main() {
   auto sampler = tupi::Sampler::create(logical_device);
 
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-  tupi::FramePtrVec frames;
+  tupi::FrameVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
   tupi::BufferPtrVec uniform_buffers;
   uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -281,7 +280,7 @@ int main() {
            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)}},
       static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    frames.emplace_back(tupi::Frame::create(logical_device, command_pool));
+    frames.emplace_back(logical_device, command_pool);
     uniform_buffers.emplace_back(tupi::Buffer::create<UniformBufferObject>(
         logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -315,11 +314,11 @@ int main() {
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
     frames.at(current_frame)
-        ->draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
-               {descriptor_sets.at(current_frame)},
-               tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
-               static_cast<uint32_t>(vertices.size()), index_buffer, 0,
-               static_cast<uint32_t>(indices.size()));
+        .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
+              {descriptor_sets.at(current_frame)},
+              tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
+              static_cast<uint32_t>(vertices.size()), index_buffer, 0,
+              static_cast<uint32_t>(indices.size()));
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 

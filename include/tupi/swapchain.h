@@ -5,15 +5,17 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 #include "tupi/queue_family.h"
 #include "tupi/swapchain_support_detail.h"
 
 namespace tupi {
-class Swapchain : public internal::Creatable<Swapchain, std::shared_ptr> {
-  friend class internal::Creatable<Swapchain, std::shared_ptr>;
-
+class Swapchain : public internal::SharedResource<Swapchain> {
  public:
+  Swapchain(Token, LogicalDevicePtr logical_device,
+            SwapchainSupportDetail swapchain_support_detail,
+            const QueueFamily& graphics_queue_family,
+            const QueueFamily& present_queue_family, bool depth = true);
   ~Swapchain();
 
   auto handle() const -> VkSwapchainKHR;
@@ -32,10 +34,6 @@ class Swapchain : public internal::Creatable<Swapchain, std::shared_ptr> {
   auto createFramebuffers(RenderPassPtr render_pass) -> void;
 
  protected:
-  Swapchain(LogicalDevicePtr logical_device,
-            SwapchainSupportDetail swapchain_support_detail,
-            const QueueFamily& graphics_queue_family,
-            const QueueFamily& present_queue_family, bool depth = true);
   Swapchain(const Swapchain&) = delete;
   Swapchain(Swapchain&&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;

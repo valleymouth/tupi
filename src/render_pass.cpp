@@ -4,11 +4,7 @@
 #include "tupi/subpass_description.h"
 
 namespace tupi {
-RenderPass::~RenderPass() {
-  vkDestroyRenderPass(logical_device_->handle(), render_pass_, nullptr);
-}
-
-RenderPass::RenderPass(LogicalDevicePtr logical_device,
+RenderPass::RenderPass(Token, LogicalDevicePtr logical_device,
                        AttachmentDescriptionVec attachments,
                        SubpassDescriptionVec subpasses)
     : logical_device_(std::move(logical_device)),
@@ -41,5 +37,9 @@ RenderPass::RenderPass(LogicalDevicePtr logical_device,
                          &render_pass_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create render pass!");
   }
+}
+
+RenderPass::~RenderPass() {
+  vkDestroyRenderPass(logical_device_->handle(), render_pass_, nullptr);
 }
 }  // namespace tupi

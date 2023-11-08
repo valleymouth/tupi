@@ -5,21 +5,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-Shader::~Shader() {
-  vkDestroyShaderModule(logical_device_->handle(), shader_, nullptr);
-}
-
-auto Shader::pipelineCreateInfos(const ShaderPtrVec& shaders)
-    -> std::vector<VkPipelineShaderStageCreateInfo> {
-  std::vector<VkPipelineShaderStageCreateInfo> result;
-  result.reserve(shaders.size());
-  for (const auto& shader : shaders) {
-    result.emplace_back(shader->pipelineCreateInfo());
-  }
-  return result;
-}
-
-Shader::Shader(LogicalDevicePtr logical_device,
+Shader::Shader(Token, LogicalDevicePtr logical_device,
                const std::filesystem::path& path, Shader::Stage stage)
     : logical_device_(std::move(logical_device)) {
   if (!std::filesystem::exists(path)) {
@@ -59,5 +45,19 @@ Shader::Shader(LogicalDevicePtr logical_device,
   }
   pipeline_create_info_.module = shader_;
   pipeline_create_info_.pName = "main";
+}
+
+Shader::~Shader() {
+  vkDestroyShaderModule(logical_device_->handle(), shader_, nullptr);
+}
+
+auto Shader::pipelineCreateInfos(const ShaderPtrVec& shaders)
+    -> std::vector<VkPipelineShaderStageCreateInfo> {
+  std::vector<VkPipelineShaderStageCreateInfo> result;
+  result.reserve(shaders.size());
+  for (const auto& shader : shaders) {
+    result.emplace_back(shader->pipelineCreateInfo());
+  }
+  return result;
 }
 }  // namespace tupi

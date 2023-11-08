@@ -13,6 +13,17 @@
 #include "tupi/window.h"
 
 namespace tupi {
+Swapchain::Swapchain(Token, LogicalDevicePtr logical_device,
+                     SwapchainSupportDetail swapchain_support_detail,
+                     const QueueFamily& graphics_queue_family,
+                     const QueueFamily& present_queue_family, bool depth)
+    : logical_device_(std::move(logical_device)),
+      swapchain_support_detail_(std::move(swapchain_support_detail)),
+      graphics_queue_family_(graphics_queue_family),
+      present_queue_family_(present_queue_family) {
+  createSwapchain(depth);
+}
+
 Swapchain::~Swapchain() {
   vkDestroySwapchainKHR(logical_device_->handle(), swapchain_, nullptr);
 }
@@ -30,17 +41,6 @@ auto Swapchain::recreate() -> void {
   vkDestroySwapchainKHR(logical_device_->handle(), swapchain_, nullptr);
   swapchain_support_detail_.updateSurfaceCapabilities();
   createSwapchain(static_cast<bool>(depth_image_));
-}
-
-Swapchain::Swapchain(LogicalDevicePtr logical_device,
-                     SwapchainSupportDetail swapchain_support_detail,
-                     const QueueFamily& graphics_queue_family,
-                     const QueueFamily& present_queue_family, bool depth)
-    : logical_device_(std::move(logical_device)),
-      swapchain_support_detail_(std::move(swapchain_support_detail)),
-      graphics_queue_family_(graphics_queue_family),
-      present_queue_family_(present_queue_family) {
-  createSwapchain(depth);
 }
 
 auto Swapchain::createSwapchain(bool depth) -> void {

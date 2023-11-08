@@ -11,8 +11,6 @@
 
 namespace tupi {
 class LogicalDevice : public internal::SharedResource<LogicalDevice> {
-  friend internal::SharedResource<LogicalDevice>;
-
  public:
   struct QueueCreateInfo {
     QueueFamily queue_family{};
@@ -20,6 +18,9 @@ class LogicalDevice : public internal::SharedResource<LogicalDevice> {
   };
   using QueueCreateInfoList = std::vector<QueueCreateInfo>;
 
+  LogicalDevice(Token, PhysicalDevicePtr physical_device,
+                const QueueCreateInfoList& queue_create_infos,
+                const ExtensionSet& extensions = {});
   ~LogicalDevice();
 
   auto physicalDevice() const -> PhysicalDevicePtr;
@@ -29,9 +30,6 @@ class LogicalDevice : public internal::SharedResource<LogicalDevice> {
                       VkMemoryPropertyFlags property_flags) const -> uint32_t;
 
  protected:
-  LogicalDevice(PhysicalDevicePtr physical_device,
-                const QueueCreateInfoList& queue_create_infos,
-                const ExtensionSet& extensions = {});
   LogicalDevice(const LogicalDevice&) = delete;
   LogicalDevice(LogicalDevice&&) = delete;
   LogicalDevice& operator=(const LogicalDevice&) = delete;

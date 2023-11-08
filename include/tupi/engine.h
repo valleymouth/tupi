@@ -10,17 +10,15 @@
 
 namespace tupi {
 class Engine : public internal::SharedResource<Engine> {
-  friend internal::SharedResource<Engine>;
-
  public:
+  Engine(Token, const std::string& app_name, uint32_t app_version,
+         const ExtensionSet& extensions,
+         const std::vector<const char*>& validation_layers = {});
   ~Engine();
 
   auto handle() const -> VkInstance;
 
  protected:
-  Engine(const std::string& app_name, uint32_t app_version,
-         const ExtensionSet& extensions,
-         const std::vector<const char*>& validation_layers = {});
   Engine(const Engine&) = delete;
   Engine(Engine&&) = delete;
   Engine& operator=(const Engine&) = delete;

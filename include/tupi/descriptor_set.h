@@ -17,8 +17,6 @@ class DescriptorSet {
                      DescriptorSetLayoutPtrVec descriptor_set_layouts,
                      BufferPtrVec buffers, ImageViewPtrVec image_views,
                      SamplerPtrVec samplers) -> DescriptorSetPtrVec;
-  static auto handles(const DescriptorSetPtrVec& descriptor_sets)
-      -> std::vector<VkDescriptorSet>;
 
  protected:
   DescriptorSet() = default;

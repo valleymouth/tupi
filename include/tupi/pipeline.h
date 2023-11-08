@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
+#include "tupi/internal/resource.h"
 #include "tupi/pipeline_color_blend_state.h"
 #include "tupi/pipeline_depth_stencil_state.h"
 #include "tupi/pipeline_dynamic_state.h"
@@ -16,18 +16,9 @@
 #include "tupi/pipeline_viewport_state.h"
 
 namespace tupi {
-class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
-  friend class internal::Creatable<Pipeline, std::shared_ptr>;
-
+class Pipeline : public internal::SharedResource<Pipeline> {
  public:
-  ~Pipeline();
-
-  auto handle() const -> VkPipeline;
-  auto pipelineLayout() const -> PipelineLayoutPtr;
-  auto renderPass() const -> RenderPassPtr;
-
- protected:
-  Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
+  Pipeline(Token, LogicalDevicePtr logical_device, ShaderPtrVec shaders,
            PipelineVertexInput vertex_input,
            PipelineInputAssembly input_assembly,
            PipelineViewportState viewport_state,
@@ -37,6 +28,13 @@ class Pipeline : public internal::Creatable<Pipeline, std::shared_ptr> {
            PipelineDepthStencilState depth_stencil_state,
            PipelineDynamicState dynamic_state,
            PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass);
+  ~Pipeline();
+
+  auto handle() const -> VkPipeline;
+  auto pipelineLayout() const -> PipelineLayoutPtr;
+  auto renderPass() const -> RenderPassPtr;
+
+ protected:
   Pipeline(const Pipeline&) = delete;
   Pipeline(Pipeline&&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;

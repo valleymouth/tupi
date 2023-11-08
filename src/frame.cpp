@@ -10,6 +10,13 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
+Frame::Frame(const LogicalDevicePtr& logical_device,
+             const CommandPoolPtr& command_pool)
+    : command_buffer_(CommandBuffer::create(command_pool)),
+      image_available_semaphore_(std::move(Semaphore::create(logical_device))),
+      render_finished_semaphore_(std::move(Semaphore::create(logical_device))),
+      fence_(std::move(Fence::create(logical_device, true))) {}
+
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
                  const Queue& present_queue,
@@ -62,11 +69,4 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
     throw std::runtime_error("Failed to present swap chain image!");
   }
 }
-
-Frame::Frame(const LogicalDevicePtr& logical_device,
-             const CommandPoolPtr& command_pool)
-    : command_buffer_(CommandBuffer::create(command_pool)),
-      image_available_semaphore_(std::move(Semaphore::create(logical_device))),
-      render_finished_semaphore_(std::move(Semaphore::create(logical_device))),
-      fence_(std::move(Fence::create(logical_device, true))) {}
 }  // namespace tupi

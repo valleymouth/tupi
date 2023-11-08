@@ -4,11 +4,7 @@
 #include "tupi/queue_family.h"
 
 namespace tupi {
-CommandPool::~CommandPool() {
-  vkDestroyCommandPool(logical_device_->handle(), command_pool_, nullptr);
-}
-
-CommandPool::CommandPool(LogicalDevicePtr logical_device,
+CommandPool::CommandPool(Token, LogicalDevicePtr logical_device,
                          const QueueFamily& queue_family)
     : logical_device_(std::move(logical_device)) {
   VkCommandPoolCreateInfo create_info{};
@@ -20,5 +16,9 @@ CommandPool::CommandPool(LogicalDevicePtr logical_device,
                           &command_pool_) != VK_SUCCESS) {
     throw std::runtime_error("failed to create command pool!");
   }
+}
+
+CommandPool::~CommandPool() {
+  vkDestroyCommandPool(logical_device_->handle(), command_pool_, nullptr);
 }
 }  // namespace tupi

@@ -6,11 +6,7 @@
 #include "tupi/shader.h"
 
 namespace tupi {
-Pipeline::~Pipeline() {
-  vkDestroyPipeline(logical_device_->handle(), pipeline_, nullptr);
-}
-
-Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
+Pipeline::Pipeline(Token, LogicalDevicePtr logical_device, ShaderPtrVec shaders,
                    PipelineVertexInput vertex_input,
                    PipelineInputAssembly input_assembly,
                    PipelineViewportState viewport_state,
@@ -65,5 +61,9 @@ Pipeline::Pipeline(LogicalDevicePtr logical_device, ShaderPtrVec shaders,
                                 &pipeline_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
+}
+
+Pipeline::~Pipeline() {
+  vkDestroyPipeline(logical_device_->handle(), pipeline_, nullptr);
 }
 }  // namespace tupi

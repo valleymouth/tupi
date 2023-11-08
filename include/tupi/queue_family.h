@@ -12,10 +12,9 @@ class QueueFamily {
   explicit QueueFamily(PhysicalDevicePtr physical_device)
       : physical_device_(std::move(physical_device)) {}
 
-  [[nodiscard]] auto index() const -> uint32_t;
-  [[nodiscard]] auto hasGraphics() const -> bool;
-  [[nodiscard]] auto hasPresentSupport(const ISurfacePtr& surface) const
-      -> bool;
+  auto index() const -> uint32_t;
+  auto hasGraphics() const -> bool;
+  auto hasPresentSupport(const ISurfacePtr& surface) const -> bool;
 
   static auto enumerate(const PhysicalDevicePtr& physical_device)
       -> QueueFamilyVec;

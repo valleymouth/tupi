@@ -5,7 +5,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/creatable.h"
 
 namespace tupi {
 class Image {

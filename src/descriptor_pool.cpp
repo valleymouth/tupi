@@ -3,11 +3,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-DescriptorPool::~DescriptorPool() {
-  vkDestroyDescriptorPool(logical_device_->handle(), descriptor_pool_, nullptr);
-}
-
-DescriptorPool::DescriptorPool(LogicalDevicePtr logical_device,
+DescriptorPool::DescriptorPool(Token, LogicalDevicePtr logical_device,
                                DescriptorPoolSizeVec pool_sizes,
                                uint32_t max_sets)
     : logical_device_(std::move(logical_device)),
@@ -21,5 +17,9 @@ DescriptorPool::DescriptorPool(LogicalDevicePtr logical_device,
                              &descriptor_pool_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create descriptor pool!");
   }
+}
+
+DescriptorPool::~DescriptorPool() {
+  vkDestroyDescriptorPool(logical_device_->handle(), descriptor_pool_, nullptr);
 }
 }  // namespace tupi
