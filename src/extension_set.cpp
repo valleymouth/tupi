@@ -21,8 +21,8 @@ ExtensionSet::ExtensionSet(std::initializer_list<const char*> extensions) {
   std::ranges::sort(extension_names_);
 }
 
-auto ExtensionSet::addExtension(const std::string name) -> void {
-  extension_names_.emplace_back(name);
+auto ExtensionSet::addExtension(std::string name) -> void {
+  extension_names_.push_back(std::move(name));
   std::ranges::sort(extension_names_);
 }
 
@@ -46,10 +46,10 @@ auto ExtensionSet::end() const -> ConstIterator {
   return extension_names_.end();
 }
 
-auto ExtensionSet::toVulkan() const -> std::vector<const char*> {
+auto ExtensionSet::toCStringVector() const -> std::vector<const char*> {
   std::vector<const char*> result(extension_names_.size());
   std::ranges::transform(extension_names_, result.begin(),
-                         [](auto&& x) { return x.c_str(); });
+                         [](const auto& x) { return x.c_str(); });
   return result;
 }
 
@@ -66,7 +66,7 @@ auto ExtensionSet::enumerate() -> ExtensionSet {
   return result;
 }
 
-auto ExtensionSet::enumerate(const PhysicalDevicePtr& physical_device)
+auto ExtensionSet::enumerate(const PhysicalDeviceSharedPtr& physical_device)
     -> ExtensionSet {
   ExtensionSet result;
   uint32_t count;

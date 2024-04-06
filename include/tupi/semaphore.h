@@ -3,29 +3,24 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class Semaphore : public internal::SharedResource<Semaphore> {
+class Semaphore {
  public:
-  Semaphore(Token, LogicalDevicePtr logical_device);
+  explicit Semaphore(LogicalDeviceSharedPtr logical_device);
   ~Semaphore();
+  Semaphore(const Semaphore&) = delete;
+  Semaphore& operator=(const Semaphore&) = delete;
+  Semaphore(Semaphore&&) = default;
+  Semaphore& operator=(Semaphore&&) = default;
 
-  auto handle() const -> VkSemaphore;
-
+  auto handle() const -> VkSemaphore { return semaphore_; }
   static auto handles(const SemaphorePtrVec& semaphores)
       -> std::vector<VkSemaphore>;
 
- protected:
-  Semaphore(const Semaphore&) = delete;
-  Semaphore(Semaphore&&) = delete;
-  Semaphore& operator=(const Semaphore&) = delete;
-  Semaphore& operator=(Semaphore&&) = delete;
-
  private:
-  LogicalDevicePtr logical_device_{};
-  VkSemaphore semaphore_{VK_NULL_HANDLE};
+  LogicalDeviceSharedPtr logical_device_{};
+  Handle<VkSemaphore> semaphore_{};
 };
-
-inline auto Semaphore::handle() const -> VkSemaphore { return semaphore_; }
 }  // namespace tupi

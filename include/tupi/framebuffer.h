@@ -1,46 +1,33 @@
 #pragma once
 
-#include <memory>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class Framebuffer : public internal::SharedResource<Framebuffer> {
+class Framebuffer {
  public:
-  Framebuffer(Token, LogicalDevicePtr logical_device, RenderPassPtr render_pass,
+  Framebuffer(LogicalDeviceSharedPtr logical_device, RenderPassPtr render_pass,
               ImageViewPtrVec image_views, VkExtent2D extent);
   ~Framebuffer();
+  Framebuffer(const Framebuffer&) = delete;
+  Framebuffer& operator=(const Framebuffer&) = delete;
+  Framebuffer(Framebuffer&&) = default;
+  Framebuffer& operator=(Framebuffer&&) = default;
 
-  auto handle() const -> VkFramebuffer;
-  auto renderPass() const -> RenderPassPtr;
-  auto extent() const -> VkExtent2D;
+  auto handle() const -> VkFramebuffer { return framebuffer_; }
+  auto renderPass() const -> RenderPassPtr { return render_pass_; }
+  auto extent() const -> VkExtent2D { return extent_; }
 
-  static auto enumerate(const Swapchain& swapchain,
+  static auto enumerate(const SwapchainPtr& swapchain,
                         const RenderPassPtr& render_pass) -> FramebufferPtrVec;
 
- protected:
-  Framebuffer(const Framebuffer&) = delete;
-  Framebuffer(Framebuffer&&) = delete;
-  Framebuffer& operator=(const Framebuffer&) = delete;
-  Framebuffer& operator=(Framebuffer&&) = delete;
-
  private:
-  LogicalDevicePtr logical_device_{};
+  LogicalDeviceSharedPtr logical_device_{};
   RenderPassPtr render_pass_{};
   ImageViewPtrVec image_views_{};
   VkExtent2D extent_{};
-  VkFramebuffer framebuffer_{VK_NULL_HANDLE};
+  Handle<VkFramebuffer> framebuffer_{};
 };
-
-inline auto Framebuffer::handle() const -> VkFramebuffer {
-  return framebuffer_;
-}
-
-inline auto Framebuffer::renderPass() const -> RenderPassPtr {
-  return render_pass_;
-}
-
-inline auto Framebuffer::extent() const -> VkExtent2D { return extent_; }
 }  // namespace tupi

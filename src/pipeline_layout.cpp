@@ -5,8 +5,8 @@
 #include "tupi/utility.h"
 
 namespace tupi {
-PipelineLayout::PipelineLayout(Token, LogicalDevicePtr logical_device,
-                               DescriptorSetLayoutPtrVec descriptor_sets)
+PipelineLayout::PipelineLayout(LogicalDeviceSharedPtr logical_device,
+                               DescriptorSetLayoutSharedPtrVec descriptor_sets)
     : logical_device_(std::move(logical_device)) {
   VkPipelineLayoutCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -22,25 +22,7 @@ PipelineLayout::PipelineLayout(Token, LogicalDevicePtr logical_device,
   }
 }
 
-PipelineLayout::PipelineLayout(PipelineLayout&& other) {
-  logical_device_ = std::move(other.logical_device_);
-  other.logical_device_ = nullptr;
-  pipeline_layout_ = other.pipeline_layout_;
-  other.pipeline_layout_ = VK_NULL_HANDLE;
-}
-
-auto PipelineLayout::operator=(PipelineLayout&& other) -> PipelineLayout& {
-  logical_device_ = std::move(other.logical_device_);
-  other.logical_device_ = nullptr;
-  pipeline_layout_ = other.pipeline_layout_;
-  other.pipeline_layout_ = VK_NULL_HANDLE;
-  return *this;
-}
-
 PipelineLayout::~PipelineLayout() {
-  if (logical_device_) {
-    vkDestroyPipelineLayout(logical_device_->handle(), pipeline_layout_,
-                            nullptr);
-  }
+  vkDestroyPipelineLayout(logical_device_->handle(), pipeline_layout_, nullptr);
 }
 }  // namespace tupi

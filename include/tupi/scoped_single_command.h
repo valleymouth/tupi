@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tupi/command_pool.h"
+#include "tupi/handle.h"
 #include "tupi/logical_device.h"
 
 namespace tupi {
@@ -13,6 +14,6 @@ class ScopedSingleCommand {
  private:
   LogicalDevicePtr logical_device_{};
   CommandPoolPtr command_pool_{};
-  VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
+  Handle<VkCommandBuffer> command_buffer_{};
 };
 }  // namespace tupi

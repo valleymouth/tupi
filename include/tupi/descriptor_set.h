@@ -2,33 +2,35 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "tupi/descriptor_set_layout.h"
 #include "tupi/fwd.h"
+#include "tupi/handle.h"
 
 namespace tupi {
+/// @brief Remember: multiple descriptor sets are allocated and updated at once,
+/// that is why the constructor is hidden by a private struct. They are also
+/// destroyed when the descriptor pool is destroyed, so no need for a
+/// destructor.
 class DescriptorSet {
+  struct Private {};
+
  public:
-  auto handle() const -> VkDescriptorSet;
-  auto pool() const -> DescriptorPoolPtr;
-  auto layout() const -> DescriptorSetLayoutPtr;
-  auto update(const BufferPtr buffer) -> void;
+  DescriptorSet(Private){};
 
-  static auto create(DescriptorPoolPtr descriptor_pool,
-                     DescriptorSetLayoutPtrVec descriptor_set_layouts,
+  auto handle() const -> VkDescriptorSet { return descriptor_set_; }
+
+  auto pool() const -> DescriptorPoolSharedPtr;
+  auto layout() const -> DescriptorSetLayoutSharedPtr;
+  auto update(const BufferSharedPtr buffer) -> void;
+
+  static auto create(DescriptorPoolSharedPtr descriptor_pool,
+                     DescriptorSetLayoutSharedPtrVec descriptor_set_layouts,
                      BufferPtrVec buffers, ImageViewPtrVec image_views,
-                     SamplerPtrVec samplers) -> DescriptorSetPtrVec;
-
- protected:
-  DescriptorSet() = default;
+                     SamplerPtrVec samplers) -> DescriptorSetSharedPtrVec;
 
  private:
-  DescriptorPoolPtr descriptor_pool_{};
-  DescriptorSetLayoutPtr descriptor_set_layout_{};
-  BufferPtr buffer_{};
-  VkDescriptorSet descriptor_set_{VK_NULL_HANDLE};
+  DescriptorPoolSharedPtr descriptor_pool_{};
+  DescriptorSetLayoutSharedPtr descriptor_set_layout_{};
+  BufferSharedPtr buffer_{};
+  Handle<VkDescriptorSet> descriptor_set_;
 };
-
-inline auto DescriptorSet::handle() const -> VkDescriptorSet {
-  return descriptor_set_;
-}
 }  // namespace tupi

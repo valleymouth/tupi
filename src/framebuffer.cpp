@@ -5,9 +5,10 @@
 #include "tupi/logical_device.h"
 #include "tupi/render_pass.h"
 #include "tupi/swapchain.h"
+#include "tupi/swapchain_image.h"
 
 namespace tupi {
-Framebuffer::Framebuffer(Token, LogicalDevicePtr logical_device,
+Framebuffer::Framebuffer(LogicalDeviceSharedPtr logical_device,
                          RenderPassPtr render_pass, ImageViewPtrVec image_views,
                          VkExtent2D extent)
     : logical_device_(std::move(logical_device)),
@@ -39,22 +40,22 @@ Framebuffer::~Framebuffer() {
   vkDestroyFramebuffer(logical_device_->handle(), framebuffer_, nullptr);
 }
 
-auto Framebuffer::enumerate(const Swapchain& swapchain,
+auto Framebuffer::enumerate(const SwapchainPtr& swapchain,
                             const RenderPassPtr& render_pass)
     -> FramebufferPtrVec {
-  auto logical_device = swapchain.logicalDevice();
-  auto images = swapchain.images();
+  auto logical_device = swapchain->logicalDevice();
+  auto images = SwapchainImage::enumerate(swapchain);
   tupi::FramebufferPtrVec framebuffers;
   framebuffers.reserve(images.size());
   for (auto& image : images) {
     auto image_view =
-        ImageView::create(logical_device, image, swapchain.format());
+        std::make_shared<ImageView>(logical_device, image, swapchain->format());
     auto image_views = tupi::ImageViewPtrVec{image_view};
-    if (swapchain.hasDepth()) {
-      image_views.emplace_back(swapchain.depthImageView());
+    if (swapchain->hasDepth()) {
+      image_views.push_back(swapchain->depthImageView());
     }
-    framebuffers.emplace_back(tupi::Framebuffer::create(
-        logical_device, render_pass, image_views, swapchain.extent()));
+    framebuffers.push_back(std::make_shared<Framebuffer>(
+        logical_device, render_pass, image_views, swapchain->extent()));
   }
   return framebuffers;
 }

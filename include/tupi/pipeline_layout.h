@@ -4,29 +4,23 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class PipelineLayout : public internal::SharedResource<PipelineLayout> {
+class PipelineLayout {
  public:
-  PipelineLayout(Token, LogicalDevicePtr logical_device,
-                 DescriptorSetLayoutPtrVec descriptor_sets);
+  PipelineLayout(LogicalDeviceSharedPtr logical_device,
+                 DescriptorSetLayoutSharedPtrVec descriptor_sets);
   ~PipelineLayout();
-
-  auto handle() const -> VkPipelineLayout;
-
- protected:
   PipelineLayout(const PipelineLayout&) = delete;
-  PipelineLayout(PipelineLayout&& other);
   auto operator=(const PipelineLayout&) -> PipelineLayout& = delete;
-  auto operator=(PipelineLayout&& other) -> PipelineLayout&;
+  PipelineLayout(PipelineLayout&& other) = default;
+  auto operator=(PipelineLayout&& other) -> PipelineLayout& = default;
+
+  auto handle() const -> VkPipelineLayout { return pipeline_layout_; }
 
  private:
-  LogicalDevicePtr logical_device_{};
-  VkPipelineLayout pipeline_layout_{VK_NULL_HANDLE};
+  LogicalDeviceSharedPtr logical_device_{};
+  Handle<VkPipelineLayout> pipeline_layout_{};
 };
-
-inline auto PipelineLayout::handle() const -> VkPipelineLayout {
-  return pipeline_layout_;
-}
 }  // namespace tupi

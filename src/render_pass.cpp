@@ -4,7 +4,7 @@
 #include "tupi/subpass_description.h"
 
 namespace tupi {
-RenderPass::RenderPass(Token, LogicalDevicePtr logical_device,
+RenderPass::RenderPass(LogicalDeviceSharedPtr logical_device,
                        AttachmentDescriptionVec attachments,
                        SubpassDescriptionVec subpasses)
     : logical_device_(std::move(logical_device)),

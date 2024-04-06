@@ -4,7 +4,7 @@
 #include "tupi/physical_device.h"
 
 namespace tupi {
-Sampler::Sampler(Token, LogicalDevicePtr logical_device)
+Sampler::Sampler(LogicalDeviceSharedPtr logical_device)
     : logical_device_(std::move(logical_device)) {
   VkSamplerCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -33,18 +33,5 @@ Sampler::Sampler(Token, LogicalDevicePtr logical_device)
 
 Sampler::~Sampler() {
   vkDestroySampler(logical_device_->handle(), sampler_, nullptr);
-}
-
-Sampler::Sampler(Sampler&& other)
-    : logical_device_(std::move(other.logical_device_)),
-      sampler_(other.sampler_) {
-  other.sampler_ = VK_NULL_HANDLE;
-}
-
-auto Sampler::operator=(Sampler&& other) -> Sampler& {
-  logical_device_ = std::move(other.logical_device_);
-  sampler_ = other.sampler_;
-  other.sampler_ = VK_NULL_HANDLE;
-  return *this;
 }
 }  // namespace tupi

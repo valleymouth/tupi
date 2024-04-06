@@ -4,13 +4,14 @@
 
 #include "tupi/buffer.h"
 #include "tupi/descriptor_pool.h"
+#include "tupi/descriptor_set_layout.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/sampler.h"
 #include "tupi/utility.h"
 
 namespace tupi {
-auto DescriptorSet::update(const BufferPtr buffer) -> void {
+auto DescriptorSet::update(const BufferSharedPtr buffer) -> void {
   VkDescriptorBufferInfo buffer_info{};
   buffer_info.buffer = buffer->handle();
   buffer_info.offset = 0;
@@ -18,7 +19,7 @@ auto DescriptorSet::update(const BufferPtr buffer) -> void {
 
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = descriptor_set_;
+  write.dstSet = descriptor_set_.handle;
   write.dstBinding = 0;
   write.dstArrayElement = 0;
   write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -31,10 +32,11 @@ auto DescriptorSet::update(const BufferPtr buffer) -> void {
                          0, nullptr);
 }
 
-auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
-                           DescriptorSetLayoutPtrVec descriptor_set_layouts,
-                           BufferPtrVec buffers, ImageViewPtrVec image_views,
-                           SamplerPtrVec samplers) -> DescriptorSetPtrVec {
+auto DescriptorSet::create(
+    DescriptorPoolSharedPtr descriptor_pool,
+    DescriptorSetLayoutSharedPtrVec descriptor_set_layouts,
+    BufferPtrVec buffers, ImageViewPtrVec image_views, SamplerPtrVec samplers)
+    -> DescriptorSetSharedPtrVec {
   VkDescriptorSetAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   alloc_info.descriptorPool = descriptor_pool->handle();
@@ -50,7 +52,7 @@ auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
     throw std::runtime_error("Failed to allocate descriptor sets!");
   }
 
-  DescriptorSetPtrVec result;
+  DescriptorSetSharedPtrVec result;
   result.reserve(vk_descriptor_sets.size());
   int index = 0;
   for (const auto& vk_descriptor_set : vk_descriptor_sets) {
@@ -89,7 +91,7 @@ auto DescriptorSet::create(DescriptorPoolPtr descriptor_pool,
     vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(write.size()),
                            write.data(), 0, nullptr);
 
-    DescriptorSetPtr descriptor_set = DescriptorSetPtr{new DescriptorSet()};
+    auto descriptor_set = std::make_shared<DescriptorSet>(Private{});
     descriptor_set->descriptor_pool_ = descriptor_pool;
     descriptor_set->descriptor_set_layout_ =
         std::move(descriptor_set_layouts.at(index));

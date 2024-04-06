@@ -3,7 +3,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-Semaphore::Semaphore(Token, LogicalDevicePtr logical_device)
+Semaphore::Semaphore(LogicalDeviceSharedPtr logical_device)
     : logical_device_(std::move(logical_device)) {
   VkSemaphoreCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -22,7 +22,7 @@ auto Semaphore::handles(const SemaphorePtrVec& semaphores)
   std::vector<VkSemaphore> result;
   result.reserve(semaphores.size());
   for (const auto& semaphore : semaphores) {
-    result.emplace_back(semaphore->handle());
+    result.push_back(semaphore->handle());
   }
   return result;
 }

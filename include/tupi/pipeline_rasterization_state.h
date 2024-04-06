@@ -9,14 +9,11 @@ class PipelineRasterizationState {
  public:
   PipelineRasterizationState();
 
-  auto pipelineCreateInfo() const -> VkPipelineRasterizationStateCreateInfo;
+  auto pipelineCreateInfo() const -> VkPipelineRasterizationStateCreateInfo {
+    return pipeline_create_info_;
+  }
 
  private:
   VkPipelineRasterizationStateCreateInfo pipeline_create_info_{};
 };
-
-inline auto PipelineRasterizationState::pipelineCreateInfo() const
-    -> VkPipelineRasterizationStateCreateInfo {
-  return pipeline_create_info_;
-}
 }  // namespace tupi

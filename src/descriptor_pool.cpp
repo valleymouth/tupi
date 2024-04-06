@@ -3,7 +3,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-DescriptorPool::DescriptorPool(Token, LogicalDevicePtr logical_device,
+DescriptorPool::DescriptorPool(LogicalDeviceSharedPtr logical_device,
                                DescriptorPoolSizeVec pool_sizes,
                                uint32_t max_sets)
     : logical_device_(std::move(logical_device)),

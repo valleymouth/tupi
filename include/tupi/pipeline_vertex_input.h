@@ -9,7 +9,9 @@ class PipelineVertexInput {
  public:
   PipelineVertexInput() = default;
 
-  auto pipelineCreateInfo() const -> VkPipelineVertexInputStateCreateInfo;
+  auto pipelineCreateInfo() const -> VkPipelineVertexInputStateCreateInfo {
+    return pipeline_create_info_;
+  }
 
   template <typename T>
   static auto create() -> PipelineVertexInput {
@@ -34,9 +36,4 @@ class PipelineVertexInput {
   VertexInputBindingDescriptionVec binding_descriptions_{};
   VertexInputAttributeDescriptionVec attribute_descriptions_{};
 };
-
-inline auto PipelineVertexInput::pipelineCreateInfo() const
-    -> VkPipelineVertexInputStateCreateInfo {
-  return pipeline_create_info_;
-}
 }  // namespace tupi

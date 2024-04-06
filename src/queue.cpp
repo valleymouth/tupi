@@ -8,7 +8,7 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
-Queue::Queue(LogicalDevicePtr device, const QueueFamily& queue_family,
+Queue::Queue(LogicalDeviceSharedPtr device, const QueueFamily& queue_family,
              uint32_t queue_index)
     : logical_device_(std::move(device)) {
   vkGetDeviceQueue(logical_device_->handle(), queue_family.index(), queue_index,
@@ -19,7 +19,7 @@ auto Queue::submit(const CommandBufferPtr& command_buffer,
                    const SemaphorePtrVec& wait_semaphores,
                    const PipelineStageFlagsVec& wait_stages,
                    const SemaphorePtrVec& signal_semaphores,
-                   const FencePtr& fence) const -> void {
+                   const FenceSharedPtr& fence) const -> void {
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   auto vk_wait_semaphores = Semaphore::handles(wait_semaphores);
@@ -43,7 +43,7 @@ auto Queue::submitAndWaitIdle(const CommandBufferPtr& command_buffer,
                               const SemaphorePtrVec& wait_semaphores,
                               const PipelineStageFlagsVec& wait_stages,
                               const SemaphorePtrVec& signal_semaphores,
-                              const FencePtr& fence) const -> void {
+                              const FenceSharedPtr& fence) const -> void {
   submit(command_buffer, wait_semaphores, wait_stages, signal_semaphores,
          fence);
   vkQueueWaitIdle(queue_);

@@ -1,35 +1,28 @@
 #pragma once
 
-#include <memory>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
 #include "tupi/glfw/window.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 #include "tupi/surface.h"
 
 namespace tupi::glfw {
-class Surface : public ISurface, public internal::SharedResource<Surface> {
+class Surface : public ISurface {
  public:
-  Surface(Token, EnginePtr engine, WindowPtr window);
+  Surface(EngineSharedPtr engine, WindowSharedPtr window);
   ~Surface();
-
-  auto handle() const -> VkSurfaceKHR override;
-  auto window() const -> IWindowPtr override;
-
- protected:
   Surface(const Surface&) = delete;
-  Surface(Surface&&) = delete;
   Surface& operator=(const Surface&) = delete;
-  Surface& operator=(Surface&&) = delete;
+  Surface(Surface&& other) = default;
+  Surface& operator=(Surface&& other) = default;
+
+  auto handle() const -> VkSurfaceKHR override { return surface_; }
+  auto window() const -> IWindowPtr override { return window_; }
 
  private:
-  EnginePtr engine_{};
-  WindowPtr window_{};
-  VkSurfaceKHR surface_{VK_NULL_HANDLE};
+  EngineSharedPtr engine_{};
+  WindowSharedPtr window_{};
+  Handle<VkSurfaceKHR> surface_{};
 };
-
-inline auto Surface::handle() const -> VkSurfaceKHR { return surface_; }
-
-inline auto Surface::window() const -> IWindowPtr { return window_; }
 }  // namespace tupi::glfw

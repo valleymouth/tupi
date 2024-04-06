@@ -3,54 +3,7 @@
 #include "tupi/physical_device.h"
 
 namespace tupi {
-Buffer::~Buffer() {
-  vkDestroyBuffer(logical_device_->handle(), buffer_, nullptr);
-  vkFreeMemory(logical_device_->handle(), memory_, nullptr);
-}
-
-auto Buffer::memoryRequirements() const -> VkMemoryRequirements {
-  VkMemoryRequirements requirements;
-  vkGetBufferMemoryRequirements(logical_device_->handle(), buffer_,
-                                &requirements);
-  return requirements;
-}
-
-// auto Buffer::findMemoryType(const VkMemoryRequirements& requirements,
-//                             VkMemoryPropertyFlags property_flags) const
-//     -> uint32_t {
-//   auto properties = logical_device_->physicalDevice()->memoryProperties();
-//   for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
-//     if ((requirements.memoryTypeBits & (1 << i)) &&
-//         (properties.memoryTypes[i].propertyFlags & property_flags) ==
-//             property_flags) {
-//       return i;
-//     }
-//   }
-//   throw std::runtime_error("Failed to find suitable memory type!");
-// }
-
-auto Buffer::map() -> void {
-  if (!isMapped()) {
-    vkMapMemory(logical_device_->handle(), memory_, 0, size_, 0, &data_);
-  }
-}
-
-auto Buffer::unmap() -> void {
-  if (isMapped()) {
-    vkUnmapMemory(logical_device_->handle(), memory_);
-  }
-}
-
-auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
-  std::vector<VkBuffer> result;
-  result.reserve(buffers.size());
-  for (const auto& buffer : buffers) {
-    result.emplace_back(buffer->handle());
-  }
-  return result;
-}
-
-Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
+Buffer::Buffer(LogicalDeviceSharedPtr logical_device, VkDeviceSize size,
                VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags)
     : logical_device_(logical_device), size_(size) {
   VkBufferCreateInfo create_info{};
@@ -75,5 +28,50 @@ Buffer::Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
     throw std::runtime_error("Failed to allocate vertex buffer memory!");
   }
   vkBindBufferMemory(logical_device_->handle(), buffer_, memory_, 0);
+}
+
+Buffer::~Buffer() {
+  vkDestroyBuffer(logical_device_->handle(), buffer_, nullptr);
+  vkFreeMemory(logical_device_->handle(), memory_, nullptr);
+}
+
+Buffer::Buffer(Buffer&& other) { *this = std::move(other); }
+
+Buffer& Buffer::operator=(Buffer&& other) {
+  logical_device_ = std::move(other.logical_device_);
+  size_ = other.size_;
+  buffer_ = std::move(other.buffer_);
+  memory_ = std::move(other.memory_);
+  data_ = other.data_;
+  other.data_ = nullptr;
+  return *this;
+}
+
+auto Buffer::memoryRequirements() const -> VkMemoryRequirements {
+  VkMemoryRequirements requirements;
+  vkGetBufferMemoryRequirements(logical_device_->handle(), buffer_,
+                                &requirements);
+  return requirements;
+}
+
+auto Buffer::map() -> void {
+  if (!isMapped()) {
+    vkMapMemory(logical_device_->handle(), memory_, 0, size_, 0, &data_);
+  }
+}
+
+auto Buffer::unmap() -> void {
+  if (isMapped()) {
+    vkUnmapMemory(logical_device_->handle(), memory_);
+  }
+}
+
+auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
+  std::vector<VkBuffer> result;
+  result.reserve(buffers.size());
+  for (const auto& buffer : buffers) {
+    result.emplace_back(buffer->handle());
+  }
+  return result;
 }
 }  // namespace tupi

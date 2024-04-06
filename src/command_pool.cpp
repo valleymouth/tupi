@@ -4,7 +4,7 @@
 #include "tupi/queue_family.h"
 
 namespace tupi {
-CommandPool::CommandPool(Token, LogicalDevicePtr logical_device,
+CommandPool::CommandPool(LogicalDeviceSharedPtr logical_device,
                          const QueueFamily& queue_family)
     : logical_device_(std::move(logical_device)) {
   VkCommandPoolCreateInfo create_info{};

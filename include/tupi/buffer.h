@@ -5,18 +5,25 @@
 #include "tupi/command_buffer.h"
 #include "tupi/command_pool.h"
 #include "tupi/fwd.h"
+#include "tupi/handle.h"
 #include "tupi/logical_device.h"
 #include "tupi/queue.h"
 
 namespace tupi {
 class Buffer {
  public:
+  Buffer(LogicalDeviceSharedPtr logical_device, VkDeviceSize size,
+         VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags);
   ~Buffer();
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
+  Buffer(Buffer&& other);
+  Buffer& operator=(Buffer&& other);
 
-  auto handle() const -> VkBuffer;
-  auto size() const -> VkDeviceSize;
+  auto handle() const -> VkBuffer { return buffer_; }
+  auto size() const -> VkDeviceSize { return size_; }
+  auto isMapped() const -> bool { return data_ != nullptr; }
   auto memoryRequirements() const -> VkMemoryRequirements;
-  auto isMapped() const -> bool;
   auto map() -> void;
   auto unmap() -> void;
 
@@ -54,59 +61,45 @@ class Buffer {
   }
 
   template <typename T>
-  static auto create(LogicalDevicePtr logical_device, uint32_t size,
-                     VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags property_flags) -> BufferPtr {
-    return BufferPtr(new Buffer(std::move(logical_device), sizeof(T) * size,
-                                usage, property_flags));
-  }
-
-  template <typename T>
-  static auto create(LogicalDevicePtr logical_device, VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags property_flags) -> BufferPtr {
-    return BufferPtr(new Buffer(std::move(logical_device), sizeof(T), usage,
-                                property_flags));
-  }
-
-  template <typename T>
-  static auto copy(const std::vector<T>& data, const BufferPtr& buffer,
-                   const CommandPoolPtr& command_pool, const Queue& queue)
+  static auto copy(const std::vector<T>& data, const BufferSharedPtr& buffer,
+                   const CommandPoolSharedPtr& command_pool, const Queue& queue)
       -> void {
     const auto& logical_device = command_pool->logicalDevice();
-    auto staging_buffer = tupi::Buffer::create<T>(
+    auto staging_buffer = tupi::Buffer::createShared<T>(
         logical_device, static_cast<uint32_t>(data.size()),
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     staging_buffer->copy(data);
 
-    auto command_buffer = CommandBuffer::create(command_pool);
+    auto command_buffer = std::make_unique<CommandBuffer>(command_pool);
     command_buffer->copy(staging_buffer, buffer, sizeof(T) * data.size());
     command_buffer->record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     queue.submitAndWaitIdle(command_buffer);
   }
 
+  template <typename T>
+  static auto createShared(LogicalDeviceSharedPtr logical_device, uint32_t size,
+                           VkBufferUsageFlags usage,
+                           VkMemoryPropertyFlags property_flags) {
+    return std::make_shared<Buffer>(std::move(logical_device), sizeof(T) * size,
+                                    usage, property_flags);
+  }
+  template <typename T>
+  static auto createShared(LogicalDeviceSharedPtr logical_device,
+                           VkBufferUsageFlags usage,
+                           VkMemoryPropertyFlags property_flags) {
+    return std::make_shared<Buffer>(std::move(logical_device), sizeof(T), usage,
+                                    property_flags);
+  }
+
   static auto handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer>;
 
- protected:
-  Buffer(LogicalDevicePtr logical_device, VkDeviceSize size,
-         VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags);
-  Buffer(const Buffer&) = delete;
-  Buffer(Buffer&&) = delete;
-  auto operator=(const Buffer&) -> Buffer& = delete;
-  auto operator=(Buffer&&) -> Buffer& = delete;
-
  private:
-  LogicalDevicePtr logical_device_{};
+  LogicalDeviceSharedPtr logical_device_{};
   VkDeviceSize size_{};
-  VkBuffer buffer_{VK_NULL_HANDLE};
-  VkDeviceMemory memory_{VK_NULL_HANDLE};
+  Handle<VkBuffer> buffer_{};
+  Handle<VkDeviceMemory> memory_{};
   void* data_{nullptr};
 };
-
-inline auto Buffer::handle() const -> VkBuffer { return buffer_; }
-
-inline auto Buffer::size() const -> VkDeviceSize { return size_; }
-
-inline auto Buffer::isMapped() const -> bool { return data_ != nullptr; }
 }  // namespace tupi

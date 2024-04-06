@@ -38,16 +38,16 @@ VkFormat PhysicalDevice::findDepthFormat() {
       VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-auto PhysicalDevice::enumerate(const EnginePtr& engine)
-    -> PhysicalDevicePtrVec {
+auto PhysicalDevice::enumerate(EngineSharedPtr engine)
+    -> PhysicalDeviceSharedPtrVec {
   uint32_t count = 0;
   vkEnumeratePhysicalDevices(engine->handle(), &count, nullptr);
   std::vector<VkPhysicalDevice> devices(count);
   vkEnumeratePhysicalDevices(engine->handle(), &count, devices.data());
-  std::vector<PhysicalDevicePtr> result;
+  std::vector<PhysicalDeviceSharedPtr> result;
   result.reserve(count);
   for (const auto& vk_device : devices) {
-    auto& device = result.emplace_back(PhysicalDevice::create());
+    auto& device = result.emplace_back(std::make_shared<PhysicalDevice>());
     device->engine_ = engine;
     device->physical_device_ = vk_device;
     vkGetPhysicalDeviceProperties(vk_device, &device->properties_);

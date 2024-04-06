@@ -6,7 +6,7 @@
 #include "tupi/engine.h"
 
 namespace tupi::glfw {
-Surface::Surface(Token, EnginePtr engine, WindowPtr window)
+Surface::Surface(EngineSharedPtr engine, WindowSharedPtr window)
     : engine_(std::move(engine)), window_(std::move(window)) {
   auto glfw_window = std::dynamic_pointer_cast<Window>(window_);
   if (!glfw_window) {

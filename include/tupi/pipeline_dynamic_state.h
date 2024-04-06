@@ -7,15 +7,12 @@ class PipelineDynamicState {
  public:
   PipelineDynamicState();
 
-  auto pipelineCreateInfo() const -> VkPipelineDynamicStateCreateInfo;
+  auto pipelineCreateInfo() const -> VkPipelineDynamicStateCreateInfo {
+    return pipeline_create_info_;
+  }
 
  private:
   DynamicStateVec dynamic_states_{};
   VkPipelineDynamicStateCreateInfo pipeline_create_info_{};
 };
-
-inline auto PipelineDynamicState::pipelineCreateInfo() const
-    -> VkPipelineDynamicStateCreateInfo {
-  return pipeline_create_info_;
-}
 }  // namespace tupi

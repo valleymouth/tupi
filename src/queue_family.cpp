@@ -12,7 +12,7 @@ auto QueueFamily::hasPresentSupport(const ISurfacePtr& surface) const -> bool {
   return present_support == VK_TRUE;
 }
 
-auto QueueFamily::enumerate(const PhysicalDevicePtr& physical_device)
+auto QueueFamily::enumerate(const PhysicalDeviceSharedPtr& physical_device)
     -> std::vector<QueueFamily> {
   uint32_t count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device->handle(), &count,

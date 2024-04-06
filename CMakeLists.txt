@@ -71,6 +71,7 @@ set(SOURCES
   src/shader.cpp
   src/subpass_description.cpp
   src/swapchain.cpp
+  src/swapchain_image.cpp
   src/swapchain_support_detail.cpp)
 
 add_library(tupi ${SOURCES})

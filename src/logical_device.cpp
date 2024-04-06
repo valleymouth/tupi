@@ -4,10 +4,9 @@
 #include "tupi/queue_family.h"
 
 namespace tupi {
-LogicalDevice::LogicalDevice(
-    Token, PhysicalDevicePtr physical_device,
-    const std::vector<QueueCreateInfo>& queue_create_infos,
-    const ExtensionSet& extensions)
+LogicalDevice::LogicalDevice(PhysicalDeviceSharedPtr physical_device,
+                             const QueueCreateInfoVec& queue_create_infos,
+                             const ExtensionSet& extensions)
     : physical_device_(std::move(physical_device)) {
   std::vector<VkDeviceQueueCreateInfo> vk_queue_create_infos;
   vk_queue_create_infos.reserve(queue_create_infos.size());
@@ -32,7 +31,7 @@ LogicalDevice::LogicalDevice(
   device_features.samplerAnisotropy = VK_TRUE;  // TODO: how do I expose this?
   create_info.pEnabledFeatures = &device_features;
   create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-  auto extension_names = extensions.toVulkan();
+  auto extension_names = extensions.toCStringVector();
   create_info.ppEnabledExtensionNames = extension_names.data();
 
   if (vkCreateDevice(physical_device_->handle(), &create_info, nullptr,

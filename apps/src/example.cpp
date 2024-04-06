@@ -112,7 +112,7 @@ int main() {
 
   constexpr uint32_t WIDTH = 800;
   constexpr uint32_t HEIGHT = 600;
-  auto window = tupi::glfw::Window::create(WIDTH, HEIGHT);
+  auto window = std::make_shared<tupi::glfw::Window>(WIDTH, HEIGHT);
 
   // Need to ensure null terminated strings.
   const std::vector<const char*> validation_layers = {
@@ -132,11 +132,11 @@ int main() {
   const char** glfw_extensions =
       glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
-  auto engine = tupi::Engine::create(
+  auto engine = std::make_shared<tupi::Engine>(
       "Hello Triangle", VK_MAKE_VERSION(0, 1, 0),
       tupi::ExtensionSet(glfw_extension_count, glfw_extensions),
       validation_layers);
-  auto surface = tupi::glfw::Surface::create(engine, window);
+  auto surface = std::make_shared<tupi::glfw::Surface>(engine, window);
   auto physical_devices = tupi::PhysicalDevice::enumerate(engine);
   std::ranges::sort(physical_devices, std::greater<>{}, [](auto&& x) {
     return x->deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
@@ -157,9 +157,9 @@ int main() {
   auto queue_families = tupi::QueueFamily::enumerate(physical_device);
   auto graphics_queue_family =
       *std::ranges::find_if(queue_families, tupi::hasGraphics);
-  auto logical_device = tupi::LogicalDevice::create(
+  auto logical_device = std::make_shared<tupi::LogicalDevice>(
       physical_device,
-      tupi::LogicalDevice::QueueCreateInfoList{{graphics_queue_family, {1.0f}}},
+      tupi::QueueCreateInfoVec{{graphics_queue_family, {1.0f}}},
       tupi::ExtensionSet{VK_KHR_SWAPCHAIN_EXTENSION_NAME});
   auto graphics_queue = tupi::Queue{logical_device, graphics_queue_family, 0};
   auto present_queue_family = graphics_queue_family;
@@ -169,13 +169,13 @@ int main() {
   }
   auto present_queue = tupi::Queue{logical_device, present_queue_family, 0};
 
-  auto swapchain =
-      tupi::Swapchain::create(logical_device, swapchain_support_detail,
-                              graphics_queue_family, present_queue_family);
+  auto swapchain = std::make_shared<tupi::Swapchain>(
+      logical_device, swapchain_support_detail, graphics_queue_family,
+      present_queue_family);
 
-  auto vertex_shader = tupi::Shader::create(
+  auto vertex_shader = std::make_shared<tupi::Shader>(
       logical_device, "../../../shaders/vert.spv", tupi::Shader::Vertex);
-  auto fragment_shader = tupi::Shader::create(
+  auto fragment_shader = std::make_shared<tupi::Shader>(
       logical_device, "../../../shaders/frag.spv", tupi::Shader::Fragment);
 
   auto vertex_input = tupi::PipelineVertexInput::create<Vertex>();
@@ -196,7 +196,7 @@ int main() {
                   VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}});
   auto depth_stencil_state = tupi::PipelineDepthStencilState{};
   auto dynamic_state = tupi::PipelineDynamicState{};
-  auto descriptor_set_layout = tupi::DescriptorSetLayout::create(
+  auto descriptor_set_layout = std::make_shared<tupi::DescriptorSetLayout>(
       logical_device,
       tupi::DescriptorSetLayoutBindingVec{
           tupi::DescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -204,8 +204,9 @@ int main() {
           tupi::DescriptorSetLayoutBinding{
               1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
               VK_SHADER_STAGE_FRAGMENT_BIT}});
-  auto pipeline_layout = tupi::PipelineLayout::create(
-      logical_device, tupi::DescriptorSetLayoutPtrVec{descriptor_set_layout});
+  auto pipeline_layout = std::make_shared<tupi::PipelineLayout>(
+      logical_device,
+      tupi::DescriptorSetLayoutSharedPtrVec{descriptor_set_layout});
 
   auto attachment_descriptions = tupi::AttachmentDescriptionVec{
       {0, swapchain->format(), VK_SAMPLE_COUNT_1_BIT,
@@ -222,18 +223,18 @@ int main() {
           {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}},
       {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
   auto subpass_descriptions = tupi::SubpassDescriptionVec{subpass_description};
-  auto render_pass = tupi::RenderPass::create(
+  auto render_pass = std::make_shared<tupi::RenderPass>(
       logical_device, std::move(attachment_descriptions),
       std::move(subpass_descriptions));
-  auto pipeline = tupi::Pipeline::create(
+  auto pipeline = std::make_shared<tupi::Pipeline>(
       logical_device, tupi::ShaderPtrVec{vertex_shader, fragment_shader},
       std::move(vertex_input), input_assembly, std::move(viewport_state),
       std::move(rasterization_state), std::move(multisample_state),
       std::move(color_blend_state), std::move(depth_stencil_state),
       std::move(dynamic_state), std::move(pipeline_layout), render_pass);
-  auto framebuffers = tupi::Framebuffer::enumerate(*swapchain, render_pass);
-  auto command_pool =
-      tupi::CommandPool::create(logical_device, graphics_queue_family);
+  auto framebuffers = tupi::Framebuffer::enumerate(swapchain, render_pass);
+  auto command_pool = std::make_shared<tupi::CommandPool>(
+      logical_device, graphics_queue_family);
 
   const std::vector<Vertex> vertices = {
       {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
@@ -246,32 +247,32 @@ int main() {
       {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
   const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
-  auto vertex_buffer = tupi::Buffer::create<Vertex>(
+  auto vertex_buffer = tupi::Buffer::createShared<Vertex>(
       logical_device, static_cast<uint32_t>(vertices.size()),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   tupi::Buffer::copy<Vertex>(vertices, vertex_buffer, command_pool,
                              graphics_queue);
 
-  auto index_buffer = tupi::Buffer::create<uint16_t>(
+  auto index_buffer = tupi::Buffer::createShared<uint16_t>(
       logical_device, static_cast<uint32_t>(indices.size()),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   tupi::Buffer::copy<uint16_t>(indices, index_buffer, command_pool,
                                graphics_queue);
 
-  auto image = tupi::Image2D::create(command_pool, graphics_queue,
-                                     "../../../textures/statue.png");
-  auto image_view =
-      tupi::ImageView::create(logical_device, image, VK_FORMAT_R8G8B8A8_SRGB);
-  auto sampler = tupi::Sampler::create(logical_device);
+  auto image = tupi::Image2D::createFromFile(command_pool, graphics_queue,
+                                             "../../../textures/statue.png");
+  auto image_view = std::make_shared<tupi::ImageView>(logical_device, image,
+                                                      VK_FORMAT_R8G8B8A8_SRGB);
+  auto sampler = std::make_shared<tupi::Sampler>(logical_device);
 
   constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   tupi::FrameVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
   tupi::BufferPtrVec uniform_buffers;
   uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
-  auto descriptor_pool = tupi::DescriptorPool::create(
+  auto descriptor_pool = std::make_shared<tupi::DescriptorPool>(
       logical_device,
       tupi::DescriptorPoolSizeVec{
           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -281,10 +282,11 @@ int main() {
       static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     frames.emplace_back(logical_device, command_pool);
-    uniform_buffers.emplace_back(tupi::Buffer::create<UniformBufferObject>(
-        logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+    uniform_buffers.emplace_back(
+        tupi::Buffer::createShared<UniformBufferObject>(
+            logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
   }
   auto descriptor_sets = tupi::DescriptorSet::create(
       descriptor_pool, {descriptor_set_layout, descriptor_set_layout},

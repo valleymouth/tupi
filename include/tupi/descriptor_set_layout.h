@@ -1,33 +1,28 @@
 #pragma once
 
-#include <memory>
+#include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class DescriptorSetLayout
-    : public internal::SharedResource<DescriptorSetLayout> {
+class DescriptorSetLayout {
  public:
-  DescriptorSetLayout(Token, LogicalDevicePtr logical_device,
+  DescriptorSetLayout(LogicalDeviceSharedPtr logical_device,
                       DescriptorSetLayoutBindingVec bindings);
   ~DescriptorSetLayout();
-
-  auto handle() const -> VkDescriptorSetLayout;
-
- protected:
   DescriptorSetLayout(const DescriptorSetLayout&) = delete;
-  DescriptorSetLayout(DescriptorSetLayout&& other) = delete;
-  auto operator=(const DescriptorSetLayout&) -> DescriptorSetLayout& = delete;
-  auto operator=(DescriptorSetLayout&& other) -> DescriptorSetLayout& = delete;
+  DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
+  DescriptorSetLayout(DescriptorSetLayout&& other) = default;
+  DescriptorSetLayout& operator=(DescriptorSetLayout&& other) = default;
+
+  auto handle() const -> VkDescriptorSetLayout {
+    return descriptor_set_layout_;
+  }
 
  private:
-  LogicalDevicePtr logical_device_{};
+  LogicalDeviceSharedPtr logical_device_{};
   DescriptorSetLayoutBindingVec bindings_{};
-  VkDescriptorSetLayout descriptor_set_layout_{};
+  Handle<VkDescriptorSetLayout> descriptor_set_layout_{};
 };
-
-inline auto DescriptorSetLayout::handle() const -> VkDescriptorSetLayout {
-  return descriptor_set_layout_;
-}
 }  // namespace tupi

@@ -1,37 +1,28 @@
 #pragma once
 
-#include <memory>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class CommandPool : public internal::SharedResource<CommandPool> {
+class CommandPool {
  public:
-  CommandPool(Token, LogicalDevicePtr logical_device,
+  CommandPool(LogicalDeviceSharedPtr logical_device,
               const QueueFamily& queue_family);
   ~CommandPool();
-
-  auto handle() const -> VkCommandPool;
-  auto logicalDevice() const -> LogicalDevicePtr;
-
- protected:
   CommandPool(const CommandPool&) = delete;
-  CommandPool(CommandPool&&) = delete;
   CommandPool& operator=(const CommandPool&) = delete;
-  CommandPool& operator=(CommandPool&&) = delete;
+  CommandPool(CommandPool&&) = default;
+  CommandPool& operator=(CommandPool&&) = default;
+
+  auto handle() const -> VkCommandPool { return command_pool_; }
+  auto logicalDevice() const -> LogicalDeviceSharedPtr {
+    return logical_device_;
+  }
 
  private:
-  LogicalDevicePtr logical_device_{};
-  VkCommandPool command_pool_{VK_NULL_HANDLE};
+  LogicalDeviceSharedPtr logical_device_{};
+  Handle<VkCommandPool> command_pool_{};
 };
-
-inline auto CommandPool::handle() const -> VkCommandPool {
-  return command_pool_;
-}
-
-inline auto CommandPool::logicalDevice() const -> LogicalDevicePtr {
-  return logical_device_;
-}
 }  // namespace tupi

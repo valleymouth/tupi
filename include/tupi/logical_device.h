@@ -6,47 +6,39 @@
 
 #include "tupi/extension_set.h"
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 #include "tupi/queue_family.h"
 
 namespace tupi {
-class LogicalDevice : public internal::SharedResource<LogicalDevice> {
- public:
-  struct QueueCreateInfo {
-    QueueFamily queue_family{};
-    std::vector<float> priorities{};
-  };
-  using QueueCreateInfoList = std::vector<QueueCreateInfo>;
+struct QueueCreateInfo {
+  QueueFamily queue_family{};
+  std::vector<float> priorities{};
+};
 
-  LogicalDevice(Token, PhysicalDevicePtr physical_device,
-                const QueueCreateInfoList& queue_create_infos,
+class LogicalDevice {
+ public:
+  LogicalDevice(PhysicalDeviceSharedPtr physical_device,
+                const QueueCreateInfoVec& queue_create_infos,
                 const ExtensionSet& extensions = {});
   ~LogicalDevice();
+  LogicalDevice(const LogicalDevice&) = delete;
+  LogicalDevice& operator=(const LogicalDevice&) = delete;
+  LogicalDevice(LogicalDevice&& other) = default;
+  LogicalDevice& operator=(LogicalDevice&& other) = default;
 
-  auto physicalDevice() const -> PhysicalDevicePtr;
-  auto handle() const -> VkDevice;
-  auto waitIdle() const -> void;
+  auto physicalDevice() const -> PhysicalDeviceSharedPtr {
+    return physical_device_;
+  }
+
+  auto handle() const -> VkDevice { return device_; }
+
+  auto waitIdle() const -> void { vkDeviceWaitIdle(device_); }
+
   auto findMemoryType(const VkMemoryRequirements& requirements,
                       VkMemoryPropertyFlags property_flags) const -> uint32_t;
 
- protected:
-  LogicalDevice(const LogicalDevice&) = delete;
-  LogicalDevice(LogicalDevice&&) = delete;
-  LogicalDevice& operator=(const LogicalDevice&) = delete;
-  LogicalDevice& operator=(LogicalDevice&&) = delete;
-
  private:
-  PhysicalDevicePtr physical_device_{};
-  VkDevice device_{VK_NULL_HANDLE};
+  PhysicalDeviceSharedPtr physical_device_{};
+  Handle<VkDevice> device_{};
 };
-
-inline auto LogicalDevice::physicalDevice() const -> PhysicalDevicePtr {
-  return physical_device_;
-}
-
-inline auto LogicalDevice::handle() const -> VkDevice { return device_; }
-
-inline auto LogicalDevice::waitIdle() const -> void {
-  vkDeviceWaitIdle(device_);
-}
 }  // namespace tupi

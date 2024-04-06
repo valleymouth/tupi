@@ -4,7 +4,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-ImageView::ImageView(Token, LogicalDevicePtr logical_device, ImagePtr image,
+ImageView::ImageView(LogicalDeviceSharedPtr logical_device, IImagePtr image,
                      const VkFormat& format, VkImageAspectFlags aspect_flags)
     : logical_device_(std::move(logical_device)), image_(std::move(image)) {
   VkImageViewCreateInfo create_info{};

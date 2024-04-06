@@ -10,19 +10,19 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
-Frame::Frame(const LogicalDevicePtr& logical_device,
-             const CommandPoolPtr& command_pool)
-    : command_buffer_(CommandBuffer::create(command_pool)),
-      image_available_semaphore_(std::move(Semaphore::create(logical_device))),
-      render_finished_semaphore_(std::move(Semaphore::create(logical_device))),
-      fence_(std::move(Fence::create(logical_device, true))) {}
+Frame::Frame(const LogicalDeviceSharedPtr& logical_device,
+             const CommandPoolSharedPtr& command_pool)
+    : command_buffer_(std::make_unique<CommandBuffer>(std::move(command_pool))),
+      image_available_semaphore_(std::make_shared<Semaphore>(logical_device)),
+      render_finished_semaphore_(std::make_shared<Semaphore>(logical_device)),
+      fence_(std::make_shared<Fence>(std::move(logical_device), true)) {}
 
 auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                  const PipelinePtr& pipeline, const Queue& graphics_queue,
                  const Queue& present_queue,
-                 DescriptorSetPtrVec descriptor_sets,
+                 DescriptorSetSharedPtrVec descriptor_sets,
                  BufferPtrVec vertex_buffers, OffsetVec offsets,
-                 uint32_t vertex_count, BufferPtr index_buffer,
+                 uint32_t vertex_count, BufferSharedPtr index_buffer,
                  Offset index_offset, uint32_t index_count) -> void {
   fence_->wait();
   auto acquired_result =
@@ -31,7 +31,7 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     swapchain->logicalDevice()->waitIdle();
     swapchain->recreate();
-    framebuffers = Framebuffer::enumerate(*swapchain, pipeline->renderPass());
+    framebuffers = Framebuffer::enumerate(swapchain, pipeline->renderPass());
     return;
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("Failed to acquire swap chain image!");
@@ -64,7 +64,7 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
       present_result == VK_SUBOPTIMAL_KHR) {
     swapchain->logicalDevice()->waitIdle();
     swapchain->recreate();
-    framebuffers = Framebuffer::enumerate(*swapchain, pipeline->renderPass());
+    framebuffers = Framebuffer::enumerate(swapchain, pipeline->renderPass());
   } else if (present_result != VK_SUCCESS) {
     throw std::runtime_error("Failed to present swap chain image!");
   }

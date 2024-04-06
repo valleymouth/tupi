@@ -10,10 +10,11 @@
 #include "tupi/physical_device.h"
 #include "tupi/semaphore.h"
 #include "tupi/surface.h"
+#include "tupi/swapchain_image.h"
 #include "tupi/window.h"
 
 namespace tupi {
-Swapchain::Swapchain(Token, LogicalDevicePtr logical_device,
+Swapchain::Swapchain(LogicalDeviceSharedPtr logical_device,
                      SwapchainSupportDetail swapchain_support_detail,
                      const QueueFamily& graphics_queue_family,
                      const QueueFamily& present_queue_family, bool depth)
@@ -101,15 +102,15 @@ auto Swapchain::createSwapchain(bool depth) -> void {
 
   extent_ = extent;
   format_ = surface_format.value().format;
-  images_ = Image2D::enumerate(*this);
 
   // Depth buffer
   if (depth) {
     auto depth_format = physical_device->findDepthFormat();
     auto depth_image_info = tupi::ImageInfo2D(
         depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
-    depth_image_ = tupi::Image2D::create(logical_device_, depth_image_info);
-    depth_image_view_ = tupi::ImageView::create(
+    depth_image_ =
+        std::make_shared<tupi::Image2D>(logical_device_, depth_image_info);
+    depth_image_view_ = std::make_shared<tupi::ImageView>(
         logical_device_, depth_image_, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
   }
 }

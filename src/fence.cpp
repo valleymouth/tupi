@@ -1,7 +1,7 @@
 #include "tupi/fence.h"
 
 namespace tupi {
-Fence::Fence(Token, LogicalDevicePtr logical_device, bool create_signaled)
+Fence::Fence(LogicalDeviceSharedPtr logical_device, bool create_signaled)
     : logical_device_(std::move(logical_device)) {
   VkFenceCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

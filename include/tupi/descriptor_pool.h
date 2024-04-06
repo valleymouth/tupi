@@ -1,36 +1,29 @@
-#include <memory>
+#pragma once
+
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 
 namespace tupi {
-class DescriptorPool : public internal::SharedResource<DescriptorPool> {
+class DescriptorPool {
  public:
-  DescriptorPool(Token, LogicalDevicePtr logical_device,
+  DescriptorPool(LogicalDeviceSharedPtr logical_device,
                  DescriptorPoolSizeVec pool_sizes, uint32_t max_sets);
   ~DescriptorPool();
-
-  auto handle() const -> VkDescriptorPool;
-  auto logicalDevice() const -> LogicalDevicePtr;
-
- protected:
   DescriptorPool(const DescriptorPool&) = delete;
-  DescriptorPool(DescriptorPool&&) = delete;
-  auto operator=(const DescriptorPool&) -> DescriptorPool& = delete;
-  auto operator=(DescriptorPool&&) -> DescriptorPool& = delete;
+  DescriptorPool& operator=(const DescriptorPool&) = delete;
+  DescriptorPool(DescriptorPool&&) = default;
+  DescriptorPool& operator=(DescriptorPool&&) = default;
+
+  auto handle() const -> VkDescriptorPool { return descriptor_pool_; }
+  auto logicalDevice() const -> LogicalDeviceSharedPtr {
+    return logical_device_;
+  }
 
  private:
-  LogicalDevicePtr logical_device_{};
+  LogicalDeviceSharedPtr logical_device_{};
   DescriptorPoolSizeVec pool_sizes_{};
-  VkDescriptorPool descriptor_pool_{};
+  Handle<VkDescriptorPool> descriptor_pool_{};
 };
-
-inline auto DescriptorPool::handle() const -> VkDescriptorPool {
-  return descriptor_pool_;
-}
-
-inline auto DescriptorPool::logicalDevice() const -> LogicalDevicePtr {
-  return logical_device_;
-}
 }  // namespace tupi

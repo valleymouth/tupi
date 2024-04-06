@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
+#include "tupi/handle.h"
 #include "tupi/pipeline_color_blend_state.h"
 #include "tupi/pipeline_depth_stencil_state.h"
 #include "tupi/pipeline_dynamic_state.h"
@@ -16,9 +16,9 @@
 #include "tupi/pipeline_viewport_state.h"
 
 namespace tupi {
-class Pipeline : public internal::SharedResource<Pipeline> {
+class Pipeline {
  public:
-  Pipeline(Token, LogicalDevicePtr logical_device, ShaderPtrVec shaders,
+  Pipeline(LogicalDeviceSharedPtr logical_device, ShaderPtrVec shaders,
            PipelineVertexInput vertex_input,
            PipelineInputAssembly input_assembly,
            PipelineViewportState viewport_state,
@@ -29,19 +29,18 @@ class Pipeline : public internal::SharedResource<Pipeline> {
            PipelineDynamicState dynamic_state,
            PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass);
   ~Pipeline();
+  Pipeline(const Pipeline&) = delete;
+  Pipeline& operator=(const Pipeline&) = delete;
+  Pipeline(Pipeline&&) = default;
+  Pipeline& operator=(Pipeline&&) = default;
 
-  auto handle() const -> VkPipeline;
-  auto pipelineLayout() const -> PipelineLayoutPtr;
-  auto renderPass() const -> RenderPassPtr;
+  auto handle() const -> VkPipeline { return pipeline_; }
+  auto pipelineLayout() const -> PipelineLayoutPtr { return pipeline_layout_; }
+  auto renderPass() const -> RenderPassPtr { return render_pass_; }
 
  protected:
-  Pipeline(const Pipeline&) = delete;
-  Pipeline(Pipeline&&) = delete;
-  Pipeline& operator=(const Pipeline&) = delete;
-  Pipeline& operator=(Pipeline&&) = delete;
-
  private:
-  LogicalDevicePtr logical_device_{};
+  LogicalDeviceSharedPtr logical_device_{};
   ShaderPtrVec shaders_{};
   PipelineVertexInput vertex_input_{};
   PipelineInputAssembly input_assembly_{};
@@ -53,16 +52,6 @@ class Pipeline : public internal::SharedResource<Pipeline> {
   PipelineDynamicState dynamic_state_{};
   PipelineLayoutPtr pipeline_layout_{};
   RenderPassPtr render_pass_{};
-  VkPipeline pipeline_{};
+  Handle<VkPipeline> pipeline_{};
 };
-
-inline auto Pipeline::handle() const -> VkPipeline { return pipeline_; }
-
-inline auto Pipeline::pipelineLayout() const -> PipelineLayoutPtr {
-  return pipeline_layout_;
-}
-
-inline auto Pipeline::renderPass() const -> RenderPassPtr {
-  return render_pass_;
-}
 }  // namespace tupi

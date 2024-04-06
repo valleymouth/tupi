@@ -4,7 +4,9 @@
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
+#include "tupi/handle.h"
 #include "tupi/image.h"
+
 
 namespace tupi {
 /// @brief Image has too many parameters.
@@ -26,37 +28,32 @@ struct ImageInfo2D {
       : format(format), usage(usage), extent(extent) {}
 };
 
-class Image2D : public Image {
+class Image2D : public IImage {
  public:
+  Image2D(LogicalDeviceSharedPtr logical_device, const ImageInfo2D& info);
   ~Image2D();
+  Image2D(const Image2D&) = delete;
+  Image2D& operator=(const Image2D&) = delete;
+  Image2D(Image2D&&) = default;
+  Image2D& operator=(Image2D&&) = default;
 
-  auto width() const -> uint32_t;
-  auto height() const -> uint32_t;
+  auto handle() const -> VkImage override { return image_; }
+  auto logicalDevice() const -> LogicalDeviceSharedPtr override {
+    return logical_device_;
+  }
+
+  auto width() const -> uint32_t { return info_.extent.width; }
+  auto height() const -> uint32_t { return info_.extent.height; }
   auto resize(const VkExtent2D& extent) -> void;
 
-  static auto enumerate(const Swapchain& swapchain) -> Image2DPtrVec;
-  static auto create(LogicalDevicePtr logical_device, const ImageInfo2D& info)
-      -> Image2DPtr;
-  static auto create(const CommandPoolPtr& command_pool, const Queue& queue,
-                     const std::filesystem::path& path) -> Image2DPtr;
-
- protected:
-  Image2D(LogicalDevicePtr logical_device, VkImage image)
-      : Image(std::move(logical_device), image) {}
-  Image2D(LogicalDevicePtr logical_device, VkImage image,
-          const ImageInfo2D& info)
-      : Image(std::move(logical_device), image), info_(info) {}
-  Image2D(const Image2D&) = delete;
-  Image2D(Image2D&&) = delete;
-  auto operator=(const Image2D&) -> Image& = delete;
-  auto operator=(Image2D&&) -> Image& = delete;
+  static auto createFromFile(const CommandPoolSharedPtr& command_pool,
+                             const Queue& queue,
+                             const std::filesystem::path& path) -> Image2DPtr;
 
  private:
+  LogicalDeviceSharedPtr logical_device_{};
   ImageInfo2D info_{};
-  VkDeviceMemory memory_{VK_NULL_HANDLE};
+  Handle<VkImage> image_{};
+  Handle<VkDeviceMemory> memory_{};
 };
-
-inline auto Image2D::width() const -> uint32_t { return info_.extent.width; }
-
-inline auto Image2D::height() const -> uint32_t { return info_.extent.height; }
 }  // namespace tupi

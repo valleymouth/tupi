@@ -9,14 +9,11 @@ class PipelineInputAssembly {
  public:
   PipelineInputAssembly();
 
-  auto pipelineCreateInfo() const -> VkPipelineInputAssemblyStateCreateInfo;
+  auto pipelineCreateInfo() const -> VkPipelineInputAssemblyStateCreateInfo {
+    return pipeline_create_info_;
+  }
 
  private:
   VkPipelineInputAssemblyStateCreateInfo pipeline_create_info_{};
 };
-
-inline auto PipelineInputAssembly::pipelineCreateInfo() const
-    -> VkPipelineInputAssemblyStateCreateInfo {
-  return pipeline_create_info_;
-}
 }  // namespace tupi

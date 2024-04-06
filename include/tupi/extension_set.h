@@ -18,17 +18,17 @@ class ExtensionSet {
   ExtensionSet(uint32_t count, const char** extensions);
   ExtensionSet(std::initializer_list<const char*> extensions);
 
-  auto addExtension(const std::string name) -> void;
+  auto addExtension(std::string name) -> void;
   auto hasExtension(const std::string& name) const -> bool;
   auto size() const -> std::size_t;
   auto begin() -> Iterator;
   auto begin() const -> ConstIterator;
   auto end() -> Iterator;
   auto end() const -> ConstIterator;
-  auto toVulkan() const -> std::vector<const char*>;
+  auto toCStringVector() const -> std::vector<const char*>;
 
   static auto enumerate() -> ExtensionSet;
-  static auto enumerate(const PhysicalDevicePtr& physical_device)
+  static auto enumerate(const PhysicalDeviceSharedPtr& physical_device)
       -> ExtensionSet;
 
  private:

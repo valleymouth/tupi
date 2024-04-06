@@ -5,7 +5,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-Shader::Shader(Token, LogicalDevicePtr logical_device,
+Shader::Shader(LogicalDeviceSharedPtr logical_device,
                const std::filesystem::path& path, Shader::Stage stage)
     : logical_device_(std::move(logical_device)) {
   if (!std::filesystem::exists(path)) {

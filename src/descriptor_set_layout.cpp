@@ -3,7 +3,7 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-DescriptorSetLayout::DescriptorSetLayout(Token, LogicalDevicePtr logical_device,
+DescriptorSetLayout::DescriptorSetLayout(LogicalDeviceSharedPtr logical_device,
                                          DescriptorSetLayoutBindingVec bindings)
     : logical_device_(std::move(logical_device)),
       bindings_(std::move(bindings)) {
@@ -20,9 +20,7 @@ DescriptorSetLayout::DescriptorSetLayout(Token, LogicalDevicePtr logical_device,
 }
 
 DescriptorSetLayout::~DescriptorSetLayout() {
-  if (logical_device_) {
-    vkDestroyDescriptorSetLayout(logical_device_->handle(),
-                                 descriptor_set_layout_, nullptr);
-  }
+  vkDestroyDescriptorSetLayout(logical_device_->handle(),
+                               descriptor_set_layout_, nullptr);
 }
 }  // namespace tupi

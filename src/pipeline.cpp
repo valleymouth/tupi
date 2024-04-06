@@ -6,7 +6,7 @@
 #include "tupi/shader.h"
 
 namespace tupi {
-Pipeline::Pipeline(Token, LogicalDevicePtr logical_device, ShaderPtrVec shaders,
+Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device, ShaderPtrVec shaders,
                    PipelineVertexInput vertex_input,
                    PipelineInputAssembly input_assembly,
                    PipelineViewportState viewport_state,
