@@ -3,7 +3,6 @@
 #include "tupi/command_buffer.h"
 #include "tupi/fence.h"
 #include "tupi/fwd.h"
-#include "tupi/internal/resource.h"
 
 namespace tupi {
 class Frame {

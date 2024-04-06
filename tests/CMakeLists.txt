@@ -7,5 +7,4 @@ function(tupi_add_test exe_name sources test_name)
     add_test(NAME ${test_name} COMMAND ${exe_name})
 endfunction()
 
-tupi_add_test(resource_test resource.cpp resource)
 tupi_add_test(handle_test handle_test.cpp handle_test)
