@@ -7,6 +7,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <nlohmann/json.hpp>
 
 #include "tupi/buffer.h"
 #include "tupi/command_buffer.h"
@@ -84,29 +85,6 @@ struct UniformBufferObject {
   alignas(16) glm::mat4 proj;
 };
 
-bool checkValidationLayersSupport(
-    const std::vector<const char*>& validation_layers) {
-  uint32_t layer_count = 0;
-  vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-
-  std::vector<VkLayerProperties> available_layers(layer_count);
-  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
-
-  for (const auto& layer_name : validation_layers) {
-    bool layer_found = false;
-    for (const auto& layerProperties : available_layers) {
-      if (layer_name == std::string_view(layerProperties.layerName)) {
-        layer_found = true;
-        break;
-      }
-    }
-    if (!layer_found) {
-      return false;
-    }
-  }
-  return true;
-}
-
 int main() {
   glfwInit();
 
@@ -117,15 +95,6 @@ int main() {
   // Need to ensure null terminated strings.
   const std::vector<const char*> validation_layers = {
       "VK_LAYER_KHRONOS_validation"};
-  // #ifdef DEBUG
-  constexpr bool ENABLE_VALIDATION_LAYERS = true;
-  // #else
-  // constexpr bool ENABLE_VALIDATION_LAYERS = false;
-  // #endif
-  if (ENABLE_VALIDATION_LAYERS &&
-      !checkValidationLayersSupport(validation_layers)) {
-    throw std::runtime_error("Validation layers requested, but not available!");
-  }
 
   // Get required extensions for GLFW.
   uint32_t glfw_extension_count = 0;

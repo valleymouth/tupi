@@ -21,6 +21,9 @@ class Engine {
 
   auto handle() const -> VkInstance { return instance_.handle; }
 
+  static bool checkValidationLayersSupport(
+      const std::vector<const char*>& validation_layers);
+
  private:
   Handle<VkInstance> instance_{};
 };
