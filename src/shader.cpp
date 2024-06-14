@@ -51,7 +51,7 @@ Shader::~Shader() {
   vkDestroyShaderModule(logical_device_->handle(), shader_, nullptr);
 }
 
-auto Shader::pipelineCreateInfos(const ShaderPtrVec& shaders)
+auto Shader::pipelineCreateInfos(const ShaderSharedPtrVec& shaders)
     -> std::vector<VkPipelineShaderStageCreateInfo> {
   std::vector<VkPipelineShaderStageCreateInfo> result;
   result.reserve(shaders.size());

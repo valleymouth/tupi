@@ -16,7 +16,7 @@ class QueueFamily {
   auto hasGraphics() const -> bool {
     return properties_.queueFlags & VK_QUEUE_GRAPHICS_BIT;
   }
-  auto hasPresentSupport(const ISurfacePtr& surface) const -> bool;
+  auto hasPresentSupport(const ISurfaceSharedPtr& surface) const -> bool;
 
   static auto enumerate(const PhysicalDeviceSharedPtr& physical_device)
       -> QueueFamilyVec;
@@ -32,7 +32,7 @@ static auto hasGraphics = [](const QueueFamily& queue_family) {
 };
 
 struct hasPresentSupport {
-  ISurfacePtr surface;
+  ISurfaceSharedPtr surface;
 
   auto operator()(const QueueFamily& queue_family) const -> bool {
     return queue_family.hasPresentSupport(surface);

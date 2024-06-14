@@ -10,7 +10,7 @@ namespace tupi {
 class PipelineLayout {
  public:
   PipelineLayout(LogicalDeviceSharedPtr logical_device,
-                 DescriptorSetLayoutSharedPtrVec descriptor_sets);
+                 DescriptorSetLayoutSharedPtrVec descriptor_set_layouts);
   ~PipelineLayout();
   PipelineLayout(const PipelineLayout&) = delete;
   auto operator=(const PipelineLayout&) -> PipelineLayout& = delete;

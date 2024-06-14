@@ -18,7 +18,7 @@
 namespace tupi {
 class Pipeline {
  public:
-  Pipeline(LogicalDeviceSharedPtr logical_device, ShaderPtrVec shaders,
+  Pipeline(LogicalDeviceSharedPtr logical_device, ShaderSharedPtrVec shaders,
            PipelineVertexInput vertex_input,
            PipelineInputAssembly input_assembly,
            PipelineViewportState viewport_state,
@@ -27,7 +27,8 @@ class Pipeline {
            PipelineColorBlendState color_blend_state,
            PipelineDepthStencilState depth_stencil_state,
            PipelineDynamicState dynamic_state,
-           PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass);
+           PipelineLayoutSharedPtr pipeline_layout,
+           RenderPassSharedPtr render_pass);
   ~Pipeline();
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
@@ -35,13 +36,15 @@ class Pipeline {
   Pipeline& operator=(Pipeline&&) = default;
 
   auto handle() const -> VkPipeline { return pipeline_; }
-  auto pipelineLayout() const -> PipelineLayoutPtr { return pipeline_layout_; }
-  auto renderPass() const -> RenderPassPtr { return render_pass_; }
+  auto pipelineLayout() const -> PipelineLayoutSharedPtr {
+    return pipeline_layout_;
+  }
+  auto renderPass() const -> RenderPassSharedPtr { return render_pass_; }
 
  protected:
  private:
   LogicalDeviceSharedPtr logical_device_{};
-  ShaderPtrVec shaders_{};
+  ShaderSharedPtrVec shaders_{};
   PipelineVertexInput vertex_input_{};
   PipelineInputAssembly input_assembly_{};
   PipelineViewportState viewport_state_{};
@@ -50,8 +53,8 @@ class Pipeline {
   PipelineColorBlendState color_blend_state_{};
   PipelineDepthStencilState depth_stencil_state_{};
   PipelineDynamicState dynamic_state_{};
-  PipelineLayoutPtr pipeline_layout_{};
-  RenderPassPtr render_pass_{};
+  PipelineLayoutSharedPtr pipeline_layout_{};
+  RenderPassSharedPtr render_pass_{};
   Handle<VkPipeline> pipeline_{};
 };
 }  // namespace tupi

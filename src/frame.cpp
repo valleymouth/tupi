@@ -17,11 +17,12 @@ Frame::Frame(const LogicalDeviceSharedPtr& logical_device,
       render_finished_semaphore_(std::make_shared<Semaphore>(logical_device)),
       fence_(std::make_shared<Fence>(std::move(logical_device), true)) {}
 
-auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
-                 const PipelinePtr& pipeline, const Queue& graphics_queue,
+auto Frame::draw(SwapchainSharedPtr& swapchain,
+                 FramebufferSharedPtrVec& framebuffers,
+                 const PipelineSharedPtr& pipeline, const Queue& graphics_queue,
                  const Queue& present_queue,
                  DescriptorSetSharedPtrVec descriptor_sets,
-                 BufferPtrVec vertex_buffers, OffsetVec offsets,
+                 BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
                  uint32_t vertex_count, BufferSharedPtr index_buffer,
                  Offset index_offset, uint32_t index_count) -> void {
   fence_->wait();
@@ -53,8 +54,8 @@ auto Frame::draw(SwapchainPtr& swapchain, FramebufferPtrVec& framebuffers,
                         index_count);
   command_buffer_->endRenderPass();
   command_buffer_->record();
-  tupi::SemaphorePtrVec wait_semaphores = {image_available_semaphore_};
-  tupi::SemaphorePtrVec signal_semaphores = {render_finished_semaphore_};
+  tupi::SemaphoreSharedPtrVec wait_semaphores = {image_available_semaphore_};
+  tupi::SemaphoreSharedPtrVec signal_semaphores = {render_finished_semaphore_};
   graphics_queue.submit(command_buffer_, wait_semaphores,
                         {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
                         signal_semaphores, fence_);

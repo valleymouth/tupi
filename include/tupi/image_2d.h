@@ -7,7 +7,6 @@
 #include "tupi/handle.h"
 #include "tupi/image.h"
 
-
 namespace tupi {
 /// @brief Image has too many parameters.
 struct ImageInfo2D {
@@ -41,6 +40,8 @@ class Image2D : public IImage {
   auto logicalDevice() const -> LogicalDeviceSharedPtr override {
     return logical_device_;
   }
+  auto is2D() const -> bool override { return true; }
+  auto format() const -> VkFormat override { return info_.format; }
 
   auto width() const -> uint32_t { return info_.extent.width; }
   auto height() const -> uint32_t { return info_.extent.height; }
@@ -48,7 +49,8 @@ class Image2D : public IImage {
 
   static auto createFromFile(const CommandPoolSharedPtr& command_pool,
                              const Queue& queue,
-                             const std::filesystem::path& path) -> Image2DPtr;
+                             const std::filesystem::path& path, VkFormat format)
+      -> Image2DSharedPtr;
 
  private:
   LogicalDeviceSharedPtr logical_device_{};

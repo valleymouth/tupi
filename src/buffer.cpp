@@ -5,9 +5,8 @@
 namespace tupi {
 Buffer::Buffer(LogicalDeviceSharedPtr logical_device, VkDeviceSize size,
                VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags)
-    : logical_device_(logical_device), size_(size) {
-  VkBufferCreateInfo create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    : logical_device_(logical_device), size_(size), usage_(usage) {
+  VkBufferCreateInfo create_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   create_info.size = size_;
   create_info.usage = usage;
   create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -66,7 +65,8 @@ auto Buffer::unmap() -> void {
   }
 }
 
-auto Buffer::handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer> {
+auto Buffer::handles(const BufferSharedPtrVec& buffers)
+    -> std::vector<VkBuffer> {
   std::vector<VkBuffer> result;
   result.reserve(buffers.size());
   for (const auto& buffer : buffers) {

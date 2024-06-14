@@ -49,8 +49,14 @@ set(SOURCES
   src/framebuffer.cpp
   src/glfw/surface.cpp
   src/glfw/window.cpp
+  src/gltf/accessor.cpp
+  src/gltf/buffer_view.cpp
+  src/gltf/buffer.cpp
+  src/gltf/file.cpp
+  src/gltf/mesh_primitive.cpp
+  src/image.cpp
   src/image_2d.cpp
-  src/image_view.cpp
+  src/image_view_2d.cpp
   src/logical_device.cpp
   src/pipeline.cpp
   src/pipeline_color_blend_state.cpp
@@ -72,7 +78,8 @@ set(SOURCES
   src/subpass_description.cpp
   src/swapchain.cpp
   src/swapchain_image.cpp
-  src/swapchain_support_detail.cpp)
+  src/swapchain_support_detail.cpp
+  src/texture_2d.cpp)
 
 add_library(tupi ${SOURCES})
 target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb)

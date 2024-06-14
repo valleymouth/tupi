@@ -23,6 +23,12 @@ class Buffer {
   auto handle() const -> VkBuffer { return buffer_; }
   auto size() const -> VkDeviceSize { return size_; }
   auto isMapped() const -> bool { return data_ != nullptr; }
+  auto isStorage() const -> bool {
+    return usage_ & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  }
+  auto isUniform() const -> bool {
+    return usage_ & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+  }
   auto memoryRequirements() const -> VkMemoryRequirements;
   auto map() -> void;
   auto unmap() -> void;
@@ -93,11 +99,13 @@ class Buffer {
                                     property_flags);
   }
 
-  static auto handles(const BufferPtrVec& buffers) -> std::vector<VkBuffer>;
+  static auto handles(const BufferSharedPtrVec& buffers)
+      -> std::vector<VkBuffer>;
 
  private:
   LogicalDeviceSharedPtr logical_device_{};
   VkDeviceSize size_{};
+  VkBufferUsageFlags usage_{};
   Handle<VkBuffer> buffer_{};
   Handle<VkDeviceMemory> memory_{};
   void* data_{nullptr};

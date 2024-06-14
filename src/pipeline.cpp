@@ -6,8 +6,8 @@
 #include "tupi/shader.h"
 
 namespace tupi {
-Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device, ShaderPtrVec shaders,
-                   PipelineVertexInput vertex_input,
+Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device,
+                   ShaderSharedPtrVec shaders, PipelineVertexInput vertex_input,
                    PipelineInputAssembly input_assembly,
                    PipelineViewportState viewport_state,
                    PipelineRasterizationState rasterization_state,
@@ -15,7 +15,8 @@ Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device, ShaderPtrVec shaders,
                    PipelineColorBlendState color_blend_state,
                    PipelineDepthStencilState depth_stencil_state,
                    PipelineDynamicState dynamic_state,
-                   PipelineLayoutPtr pipeline_layout, RenderPassPtr render_pass)
+                   PipelineLayoutSharedPtr pipeline_layout,
+                   RenderPassSharedPtr render_pass)
     : logical_device_(std::move(logical_device)),
       shaders_(std::move(shaders)),
       vertex_input_(std::move(vertex_input)),

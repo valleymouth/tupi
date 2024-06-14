@@ -5,7 +5,7 @@
 
 #include "tupi/framebuffer.h"
 #include "tupi/image_2d.h"
-#include "tupi/image_view.h"
+#include "tupi/image_view_2d.h"
 #include "tupi/logical_device.h"
 #include "tupi/physical_device.h"
 #include "tupi/semaphore.h"
@@ -29,7 +29,7 @@ Swapchain::~Swapchain() {
   vkDestroySwapchainKHR(logical_device_->handle(), swapchain_, nullptr);
 }
 
-auto Swapchain::acquireNextImage(const SemaphorePtr& semaphore) const
+auto Swapchain::acquireNextImage(const SemaphoreSharedPtr& semaphore) const
     -> std::tuple<VkResult, uint32_t> {
   uint32_t image_index = std::numeric_limits<uint32_t>::max();
   auto result =
@@ -110,7 +110,7 @@ auto Swapchain::createSwapchain(bool depth) -> void {
         depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, extent);
     depth_image_ =
         std::make_shared<tupi::Image2D>(logical_device_, depth_image_info);
-    depth_image_view_ = std::make_shared<tupi::ImageView>(
+    depth_image_view_ = std::make_shared<tupi::ImageView2D>(
         logical_device_, depth_image_, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
   }
 }

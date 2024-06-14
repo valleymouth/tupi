@@ -5,15 +5,14 @@
 #include "tupi/image.h"
 #include "tupi/swapchain.h"
 
-
 namespace tupi {
 class SwapchainImage : public IImage {
   struct Private {};
 
  public:
-  SwapchainImage(Private, SwapchainPtr swapchain, VkImage image);
+  SwapchainImage(Private, SwapchainSharedPtr swapchain, VkImage image);
 
-  auto swapchain() const -> SwapchainPtr { return swapchain_; }
+  auto swapchain() const -> SwapchainSharedPtr { return swapchain_; }
   auto width() const -> uint32_t { return swapchain_->width(); }
   auto height() const -> uint32_t { return swapchain_->height(); }
 
@@ -21,12 +20,14 @@ class SwapchainImage : public IImage {
   auto logicalDevice() const -> LogicalDeviceSharedPtr override {
     return swapchain_->logicalDevice();
   }
+  auto is2D() const -> bool override { return true; }
+  auto format() const -> VkFormat override { return VK_FORMAT_UNDEFINED; }
 
-  static auto enumerate(const SwapchainPtr& swapchain)
-      -> SwapchainImageSharedPtrVec;
+  static auto enumerate(const SwapchainSharedPtr& swapchain)
+      -> IImageSharedPtrVec;
 
  private:
-  SwapchainPtr swapchain_{};
+  SwapchainSharedPtr swapchain_{};
   VkImage image_{VK_NULL_HANDLE};
 };
 }  // namespace tupi

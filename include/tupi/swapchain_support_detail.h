@@ -12,12 +12,12 @@ class SwapchainSupportDetail {
  public:
   SwapchainSupportDetail() = default;
   SwapchainSupportDetail(PhysicalDeviceSharedPtr physical_device,
-                         ISurfacePtr surface);
+                         ISurfaceSharedPtr surface);
 
   auto physicalDevice() const -> PhysicalDeviceSharedPtr {
     return physical_device_;
   }
-  auto surface() const -> ISurfacePtr { return surface_; }
+  auto surface() const -> ISurfaceSharedPtr { return surface_; }
   auto surfaceCapabilities() const -> VkSurfaceCapabilitiesKHR {
     return capabilities_;
   }
@@ -32,7 +32,7 @@ class SwapchainSupportDetail {
 
  private:
   PhysicalDeviceSharedPtr physical_device_{};
-  ISurfacePtr surface_{};
+  ISurfaceSharedPtr surface_{};
   VkSurfaceCapabilitiesKHR capabilities_{};
   SurfaceFormatVec formats_{};
   PresentModeVec present_modes_{};

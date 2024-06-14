@@ -22,6 +22,15 @@ class PhysicalDevice {
     return extensions_.hasExtension(name);
   }
 
+  auto hasBindlessSupport() const -> bool {
+    return indexing_features_.descriptorBindingPartiallyBound &&
+           indexing_features_.runtimeDescriptorArray;
+  }
+
+  auto indexingFeatures() const -> VkPhysicalDeviceDescriptorIndexingFeatures {
+    return indexing_features_;
+  }
+
   auto memoryProperties() const -> VkPhysicalDeviceMemoryProperties {
     VkPhysicalDeviceMemoryProperties properties;
     vkGetPhysicalDeviceMemoryProperties(physical_device_, &properties);
@@ -47,6 +56,9 @@ class PhysicalDevice {
   VkPhysicalDeviceProperties properties_{};
   VkPhysicalDeviceFeatures features_{};
   ExtensionSet extensions_{};
+  VkPhysicalDeviceDescriptorIndexingFeatures indexing_features_{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr};
+  bool bindless_supported_{false};
 };
 
 inline auto hasExtension(const std::string& name) {

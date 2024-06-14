@@ -32,7 +32,7 @@ CommandBuffer::~CommandBuffer() {
                        command_pool_->handle(), 1, &command_buffer_);
 }
 
-auto CommandBuffer::beginRenderPass(FramebufferPtr framebuffer) -> void {
+auto CommandBuffer::beginRenderPass(FramebufferSharedPtr framebuffer) -> void {
   commands_.emplace_back(
       [framebuffer_ = std::move(framebuffer)](CommandBuffer& command_buffer) {
         auto extent = framebuffer_->extent();
@@ -59,7 +59,7 @@ auto CommandBuffer::endRenderPass() -> void {
   });
 }
 
-auto CommandBuffer::bindPipeline(PipelinePtr pipeline) -> void {
+auto CommandBuffer::bindPipeline(PipelineSharedPtr pipeline) -> void {
   commands_.emplace_back(
       [pipeline_ = std::move(pipeline)](CommandBuffer& command_buffer) {
         vkCmdBindPipeline(command_buffer.handle(),
@@ -68,7 +68,7 @@ auto CommandBuffer::bindPipeline(PipelinePtr pipeline) -> void {
 }
 
 auto CommandBuffer::bindDescriptorSets(
-    PipelineLayoutPtr pipeline_layout,
+    PipelineLayoutSharedPtr pipeline_layout,
     DescriptorSetSharedPtrVec descriptor_sets) -> void {
   commands_.emplace_back([pipeline_layout_ = std::move(pipeline_layout),
                           descriptor_sets_ = std::move(descriptor_sets)](
@@ -95,9 +95,10 @@ auto CommandBuffer::setScissor(VkRect2D rect) -> void {
   });
 }
 
-auto CommandBuffer::draw(BufferPtrVec vertex_buffers, OffsetVec vertex_offsets,
-                         uint32_t vertex_count, BufferSharedPtr index_buffer,
-                         Offset index_offset, uint32_t index_count) -> void {
+auto CommandBuffer::draw(BufferSharedPtrVec vertex_buffers,
+                         OffsetVec vertex_offsets, uint32_t vertex_count,
+                         BufferSharedPtr index_buffer, Offset index_offset,
+                         uint32_t index_count) -> void {
   commands_.emplace_back([=, vertex_buffers_ = std::move(vertex_buffers),
                           vertex_offsets_ = std::move(vertex_offsets),
                           index_buffer_ = std::move(index_buffer)](
@@ -107,7 +108,7 @@ auto CommandBuffer::draw(BufferPtrVec vertex_buffers, OffsetVec vertex_offsets,
                            vk_vertex_buffers.data(), vertex_offsets_.data());
     if (index_buffer_) {
       vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
-                           index_offset, VK_INDEX_TYPE_UINT16);
+                           index_offset, VK_INDEX_TYPE_UINT32);
       vkCmdDrawIndexed(command_buffer.handle(), index_count, 1, 0, 0, 0);
     } else {
       vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
@@ -130,7 +131,7 @@ auto CommandBuffer::copy(BufferSharedPtr source, BufferSharedPtr destination,
       });
 }
 
-auto CommandBuffer::copy(BufferSharedPtr source, Image2DPtr destination)
+auto CommandBuffer::copy(BufferSharedPtr source, Image2DSharedPtr destination)
     -> void {
   commands_.emplace_back(
       [=, source_ = std::move(source),
@@ -154,8 +155,8 @@ auto CommandBuffer::copy(BufferSharedPtr source, Image2DPtr destination)
       });
 }
 
-auto CommandBuffer::record(const FramebufferPtr& framebuffer,
-                           const PipelinePtr& pipeline) -> void {
+auto CommandBuffer::record(const FramebufferSharedPtr& framebuffer,
+                           const PipelineSharedPtr& pipeline) -> void {
   VkCommandBufferBeginInfo begin_info{};
   begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   begin_info.flags = 0;                   // Optional
@@ -225,9 +226,9 @@ auto CommandBuffer::record(VkCommandBufferUsageFlags flags) -> void {
   }
 }
 
-auto CommandBuffer::transitionImageLayout(IImagePtr image, VkFormat format,
-                                          VkImageLayout from, VkImageLayout to)
-    -> void {
+auto CommandBuffer::transitionImageLayout(IImageSharedPtr image,
+                                          VkFormat format, VkImageLayout from,
+                                          VkImageLayout to) -> void {
   commands_.emplace_back(
       [=, image_ = std::move(image)](CommandBuffer& command_buffer) {
         VkImageMemoryBarrier barrier{};

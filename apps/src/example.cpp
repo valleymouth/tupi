@@ -1,13 +1,9 @@
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <iostream>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <nlohmann/json.hpp>
+#include <variant>
 
 #include "tupi/buffer.h"
 #include "tupi/command_buffer.h"
@@ -22,6 +18,18 @@
 #include "tupi/framebuffer.h"
 #include "tupi/glfw/surface.h"
 #include "tupi/glfw/window.h"
+#include "tupi/gltf/accessor.h"
+#include "tupi/gltf/buffer.h"
+#include "tupi/gltf/buffer_view.h"
+#include "tupi/gltf/file.h"
+#include "tupi/gltf/image.h"
+#include "tupi/gltf/material.h"
+#include "tupi/gltf/mesh.h"
+#include "tupi/gltf/mesh_primitive.h"
+#include "tupi/gltf/node.h"
+#include "tupi/gltf/sampler.h"
+#include "tupi/gltf/scene.h"
+#include "tupi/gltf/texture.h"
 #include "tupi/image_2d.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
@@ -46,11 +54,15 @@
 #include "tupi/surface.h"
 #include "tupi/swapchain.h"
 #include "tupi/swapchain_support_detail.h"
+#include "tupi/texture.h"
+#include "tupi/texture_2d.h"
 
 struct Vertex {
   glm::vec3 position;
-  glm::vec3 color;
+  glm::vec3 normal;
   glm::vec2 texcoord;
+  glm::vec4 tangent;
+  uint32_t material;
 
   static auto bindingDescription() -> tupi::VertexInputBindingDescriptionVec {
     tupi::VertexInputBindingDescriptionVec result{1};
@@ -62,7 +74,7 @@ struct Vertex {
 
   static auto attributeDescriptions()
       -> tupi::VertexInputAttributeDescriptionVec {
-    tupi::VertexInputAttributeDescriptionVec result{3};
+    tupi::VertexInputAttributeDescriptionVec result{5};
     result[0].binding = 0;
     result[0].location = 0;
     result[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -70,22 +82,49 @@ struct Vertex {
     result[1].binding = 0;
     result[1].location = 1;
     result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    result[1].offset = offsetof(Vertex, color);
+    result[1].offset = offsetof(Vertex, normal);
     result[2].binding = 0;
     result[2].location = 2;
     result[2].format = VK_FORMAT_R32G32_SFLOAT;
     result[2].offset = offsetof(Vertex, texcoord);
+    result[3].binding = 0;
+    result[3].location = 3;
+    result[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    result[3].offset = offsetof(Vertex, tangent);
+    result[4].binding = 0;
+    result[4].location = 4;
+    result[4].format = VK_FORMAT_R32_UINT;
+    result[4].offset = offsetof(Vertex, material);
     return result;
   }
 };
 
 struct UniformBufferObject {
   alignas(16) glm::mat4 model;
+  // For transforming normals from object space to world space, see
+  // https://en.wikipedia.org/wiki/Normal_(geometry)#Transforming_normals.
+  alignas(16) glm::mat4 model_inverse_transpose;
   alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
+  alignas(16) glm::mat4 projection;
+  alignas(16) glm::vec3 eye;
+};
+
+struct MaterialBufferObject {
+  static constexpr uint32_t invalid_texture_index = (1 << 16) - 1;
+
+  alignas(16) glm::uvec4 textures{invalid_texture_index, invalid_texture_index,
+                                  invalid_texture_index, invalid_texture_index};
+  alignas(16) glm::vec4 base_color_factor{1.0f, 1.0f, 1.0f, 1.0f};
+  alignas(16) glm::vec4 metallic_roughness_occlusion_factor{1.0f, 1.0f, 1.0f,
+                                                            0.0f};
 };
 
 int main() {
+  constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+  constexpr uint32_t MAX_BINDLESS_RESOURCES = 1024;
+  constexpr uint32_t MAX_DESCRIPTOR_SETS_PER_FRAME = 32;
+  constexpr uint32_t MAX_MATERIAL_COUNT = 256;
+
   glfwInit();
 
   constexpr uint32_t WIDTH = 800;
@@ -165,17 +204,26 @@ int main() {
                   VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}});
   auto depth_stencil_state = tupi::PipelineDepthStencilState{};
   auto dynamic_state = tupi::PipelineDynamicState{};
-  auto descriptor_set_layout = std::make_shared<tupi::DescriptorSetLayout>(
-      logical_device,
-      tupi::DescriptorSetLayoutBindingVec{
-          tupi::DescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                           1, VK_SHADER_STAGE_VERTEX_BIT},
-          tupi::DescriptorSetLayoutBinding{
-              1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-              VK_SHADER_STAGE_FRAGMENT_BIT}});
+  auto descriptor_set_layout =
+      tupi::DescriptorSetLayout::create<tupi::DescriptorSetLayout>(
+          logical_device,
+          tupi::DescriptorSetLayoutBindingVec{
+              tupi::DescriptorSetLayoutBinding{
+                  0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT},
+              tupi::DescriptorSetLayoutBinding{
+                  1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+                  VK_SHADER_STAGE_FRAGMENT_BIT}});
+  auto bindless_descriptor_set_layout =
+      tupi::DescriptorSetLayout::create<tupi::BindlessDescriptorSetLayout>(
+          logical_device,
+          tupi::DescriptorSetLayoutBindingVec{tupi::DescriptorSetLayoutBinding{
+              0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              MAX_BINDLESS_RESOURCES, VK_SHADER_STAGE_FRAGMENT_BIT}});
   auto pipeline_layout = std::make_shared<tupi::PipelineLayout>(
       logical_device,
-      tupi::DescriptorSetLayoutSharedPtrVec{descriptor_set_layout});
+      tupi::DescriptorSetLayoutSharedPtrVec{descriptor_set_layout,
+                                            bindless_descriptor_set_layout});
 
   auto attachment_descriptions = tupi::AttachmentDescriptionVec{
       {0, swapchain->format(), VK_SAMPLE_COUNT_1_BIT,
@@ -196,7 +244,7 @@ int main() {
       logical_device, std::move(attachment_descriptions),
       std::move(subpass_descriptions));
   auto pipeline = std::make_shared<tupi::Pipeline>(
-      logical_device, tupi::ShaderPtrVec{vertex_shader, fragment_shader},
+      logical_device, tupi::ShaderSharedPtrVec{vertex_shader, fragment_shader},
       std::move(vertex_input), input_assembly, std::move(viewport_state),
       std::move(rasterization_state), std::move(multisample_state),
       std::move(color_blend_state), std::move(depth_stencil_state),
@@ -205,16 +253,48 @@ int main() {
   auto command_pool = std::make_shared<tupi::CommandPool>(
       logical_device, graphics_queue_family);
 
-  const std::vector<Vertex> vertices = {
-      {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-      {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-      {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-      {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-      {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-      {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-      {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-      {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
-  const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+  tupi::gltf::File gltf_file;
+  gltf_file.load("../../../resources/FlightHelmet.gltf");
+
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices;
+  for (auto& mesh : gltf_file.meshes) {
+    for (auto& primitive : mesh.primitives) {
+      uint32_t vertex_offset = vertices.size();
+      primitive.forEachPosition(
+          gltf_file, [&](const glm::vec4& position, uint64_t) {
+            Vertex vertex{};
+            // Converting glTF Z forward, X left and Y up
+            // coordinates.
+            vertex.position = glm::vec3(position.z, position.x, position.y);
+            vertex.material = primitive.material.value();
+            vertices.push_back(vertex);
+          });
+      primitive.forEachNormal(gltf_file,
+                              [&](const glm::vec4& normal, uint64_t index) {
+                                // Converting glTF Z forward, X left and Y up
+                                // coordinates.
+                                vertices[index + vertex_offset].normal =
+                                    glm::vec3(normal.z, normal.x, normal.y);
+                              });
+      primitive.forEachTextureCoordinate(
+          gltf_file, 0, [&](const glm::vec4& texcoord, uint64_t index) {
+            vertices[index + vertex_offset].texcoord = glm::vec2(texcoord);
+          });
+      primitive.forEachTangent(
+          gltf_file, [&](const glm::vec4& tangent, uint64_t index) {
+            // Converting glTF Z forward, X left and Y up
+            // coordinates.
+            vertices[index + vertex_offset].tangent =
+                glm::vec4(tangent.z, tangent.x, tangent.y, tangent.w);
+          });
+      std::uint32_t max_index = 0;
+      primitive.forEachIndex(gltf_file, [&](uint32_t vertex_index, uint64_t) {
+        indices.push_back(vertex_index + vertex_offset);
+        max_index = std::max(max_index, vertex_index);
+      });
+    }
+  }
 
   auto vertex_buffer = tupi::Buffer::createShared<Vertex>(
       logical_device, static_cast<uint32_t>(vertices.size()),
@@ -223,32 +303,132 @@ int main() {
   tupi::Buffer::copy<Vertex>(vertices, vertex_buffer, command_pool,
                              graphics_queue);
 
-  auto index_buffer = tupi::Buffer::createShared<uint16_t>(
+  auto index_buffer = tupi::Buffer::createShared<uint32_t>(
       logical_device, static_cast<uint32_t>(indices.size()),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  tupi::Buffer::copy<uint16_t>(indices, index_buffer, command_pool,
+  tupi::Buffer::copy<uint32_t>(indices, index_buffer, command_pool,
                                graphics_queue);
 
-  auto image = tupi::Image2D::createFromFile(command_pool, graphics_queue,
-                                             "../../../textures/statue.png");
-  auto image_view = std::make_shared<tupi::ImageView>(logical_device, image,
-                                                      VK_FORMAT_R8G8B8A8_SRGB);
-  auto sampler = std::make_shared<tupi::Sampler>(logical_device);
+  std::vector<MaterialBufferObject> materials;
+  std::vector<tupi::IImageSharedPtr> images(gltf_file.images.size());
 
-  constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+  auto createImageForTexture = [&](uint32_t texture_index, VkFormat format) {
+    auto gltf_texture = gltf_file.textures.at(texture_index);
+    if (gltf_texture.source.has_value()) {
+      auto image_index = gltf_texture.source.value();
+      if (!images.at(image_index)) {
+        auto gltf_image = gltf_file.images.at(image_index);
+        if (gltf_image.uri.has_value()) {
+          auto uri = gltf_file.path.parent_path() / gltf_image.uri.value();
+          images.at(image_index) = tupi::Image2D::createFromFile(
+              command_pool, graphics_queue,
+              std::filesystem::absolute(uri).string(), format);
+        }
+      }
+    }
+  };
+
+  for (const auto& gltf_material : gltf_file.materials) {
+    MaterialBufferObject material{};
+    if (gltf_material.pbr_metallic_roughness.has_value()) {
+      tupi::gltf::Material::PbrMetallicRoughness pbr_metallic_roughness =
+          gltf_material.pbr_metallic_roughness.value();
+      if (pbr_metallic_roughness.base_color_texture.has_value()) {
+        tupi::gltf::Material::TextureInfo texture_info =
+            pbr_metallic_roughness.base_color_texture.value();
+        material.textures.x = texture_info.index;
+        // TODO: check if tex_coord is 0
+        createImageForTexture(texture_info.index, VK_FORMAT_R8G8B8A8_SRGB);
+      }
+      if (pbr_metallic_roughness.metallic_roughness_texture.has_value()) {
+        tupi::gltf::Material::TextureInfo texture_info =
+            pbr_metallic_roughness.metallic_roughness_texture.value();
+        material.textures.y = texture_info.index;
+        // TODO: check if tex_coord is 0
+        createImageForTexture(texture_info.index, VK_FORMAT_R8G8B8A8_UNORM);
+      }
+      material.base_color_factor = pbr_metallic_roughness.base_color_factor;
+      material.metallic_roughness_occlusion_factor.x =
+          pbr_metallic_roughness.metallic_factor;
+      material.metallic_roughness_occlusion_factor.y =
+          pbr_metallic_roughness.roughness_factor;
+    }
+    if (gltf_material.normal_texture.has_value()) {
+      tupi::gltf::Material::NormalTexture normal_texture =
+          gltf_material.normal_texture.value();
+      material.textures.z = normal_texture.index;
+      // TODO: check if tex_coord is 0
+      createImageForTexture(normal_texture.index, VK_FORMAT_R8G8B8A8_UNORM);
+    }
+    if (gltf_material.occlusion_texture.has_value()) {
+      tupi::gltf::Material::OcclusionTexture occlusion_texture =
+          gltf_material.occlusion_texture.value();
+      material.textures.w = occlusion_texture.index;
+      // TODO: check if tex_coord is 0
+      material.metallic_roughness_occlusion_factor.z =
+          occlusion_texture.strength;
+      createImageForTexture(occlusion_texture.index, VK_FORMAT_R8G8B8A8_UNORM);
+    }
+    materials.push_back(std::move(material));
+  }
+
+  std::vector<tupi::SamplerSharedPtr> samplers;
+  for (const auto& gltf_sampler : gltf_file.samplers) {
+    VkFilter mag_filter{VK_FILTER_LINEAR};
+    if (gltf_sampler.mag_filter == tupi::gltf::Sampler::MagFilter::Nearest) {
+      mag_filter = VK_FILTER_NEAREST;
+    }
+    VkFilter min_filter{VK_FILTER_LINEAR};
+    if (gltf_sampler.min_filter == tupi::gltf::Sampler::MinFilter::Nearest) {
+      min_filter = VK_FILTER_NEAREST;
+    }
+    VkSamplerAddressMode address_mode_u{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    if (gltf_sampler.wrap_s == tupi::gltf::Sampler::Wrap::Repeat) {
+      address_mode_u = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    } else if (gltf_sampler.wrap_s ==
+               tupi::gltf::Sampler::Wrap::MirroredRepeat) {
+      address_mode_u = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    } else if (gltf_sampler.wrap_s == tupi::gltf::Sampler::Wrap::ClampToEdge) {
+      address_mode_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    }
+    VkSamplerAddressMode address_mode_v{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    if (gltf_sampler.wrap_s == tupi::gltf::Sampler::Wrap::Repeat) {
+      address_mode_v = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    } else if (gltf_sampler.wrap_s ==
+               tupi::gltf::Sampler::Wrap::MirroredRepeat) {
+      address_mode_v = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    } else if (gltf_sampler.wrap_s == tupi::gltf::Sampler::Wrap::ClampToEdge) {
+      address_mode_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    }
+    samplers.emplace_back(
+        std::make_shared<tupi::Sampler>(logical_device, mag_filter, min_filter,
+                                        address_mode_u, address_mode_v));
+  }
+
+  std::vector<tupi::ITextureSharedPtr> textures;
+  for (const auto& gltf_texture : gltf_file.textures) {
+    const auto& image = images.at(gltf_texture.source.value());
+    auto image_view = std::make_shared<tupi::ImageView2D>(logical_device, image,
+                                                          image->format());
+    auto texture = std::make_shared<tupi::Texture2D>(
+        image_view, samplers.at(gltf_texture.sampler.value()));
+    textures.push_back(std::move(texture));
+  }
+
   tupi::FrameVec frames;
   frames.reserve(MAX_FRAMES_IN_FLIGHT);
-  tupi::BufferPtrVec uniform_buffers;
+  tupi::BufferSharedPtrVec uniform_buffers;
   uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
+  tupi::BufferSharedPtrVec material_buffers;
+  material_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
   auto descriptor_pool = std::make_shared<tupi::DescriptorPool>(
       logical_device,
       tupi::DescriptorPoolSizeVec{
-          {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-           static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)},
-          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-           static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)}},
-      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
+          {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT},
+          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_FRAMES_IN_FLIGHT},
+          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_RESOURCES}},
+      MAX_FRAMES_IN_FLIGHT * MAX_DESCRIPTOR_SETS_PER_FRAME);
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     frames.emplace_back(logical_device, command_pool);
     uniform_buffers.emplace_back(
@@ -256,13 +436,28 @@ int main() {
             logical_device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+    material_buffers.emplace_back(
+        tupi::Buffer::createShared<MaterialBufferObject>(
+            logical_device, static_cast<uint32_t>(materials.size()),
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    tupi::Buffer::copy<MaterialBufferObject>(materials, material_buffers.back(),
+                                             command_pool, graphics_queue);
   }
   auto descriptor_sets = tupi::DescriptorSet::create(
-      descriptor_pool, {descriptor_set_layout, descriptor_set_layout},
-      uniform_buffers, {image_view, image_view}, {sampler, sampler});
-
-  // tupi::gltf::Reader reader;
-  // reader.read("../models/WaterBottle/WaterBottle.gltf");
+      descriptor_pool, {descriptor_set_layout, descriptor_set_layout,
+                        bindless_descriptor_set_layout});
+  tupi::WriteDescriptorSetVec writes = {
+      {descriptor_sets.at(0), uniform_buffers.at(0)},
+      {descriptor_sets.at(0), material_buffers.at(0), 1},
+      {descriptor_sets.at(1), uniform_buffers.at(1)},
+      {descriptor_sets.at(1), material_buffers.at(1), 1}};
+  uint32_t array_element = 0;
+  for (const auto& texture : textures) {
+    writes.push_back({descriptor_sets.at(2), texture, 0, array_element++});
+  }
+  tupi::DescriptorSet::update(logical_device, writes);
 
   uint32_t current_frame = 0;
   while (!glfwWindowShouldClose(window->handle())) {
@@ -276,18 +471,21 @@ int main() {
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                             glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view =
-        glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                    glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(
+    ubo.model_inverse_transpose = glm::inverseTranspose(ubo.model);
+    auto eye = glm::vec3(1.0f, 0.0f, 1.0f);
+    auto center = glm::vec3(0.0f, 0.0f, 0.35f);
+    auto up = glm::vec3(0.0f, 0.0f, 1.0f);
+    ubo.view = glm::lookAt(eye, center, up);
+    ubo.projection = glm::perspective(
         glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
+    ubo.projection[1][1] *= -1;
+    ubo.eye = eye;
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
     frames.at(current_frame)
         .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
-              {descriptor_sets.at(current_frame)},
-              tupi::BufferPtrVec{vertex_buffer}, tupi::OffsetVec{0},
+              {descriptor_sets.at(current_frame), descriptor_sets.at(2)},
+              tupi::BufferSharedPtrVec{vertex_buffer}, tupi::OffsetVec{0},
               static_cast<uint32_t>(vertices.size()), index_buffer, 0,
               static_cast<uint32_t>(indices.size()));
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;

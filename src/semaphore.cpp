@@ -17,7 +17,7 @@ Semaphore::~Semaphore() {
   vkDestroySemaphore(logical_device_->handle(), semaphore_, nullptr);
 }
 
-auto Semaphore::handles(const SemaphorePtrVec& semaphores)
+auto Semaphore::handles(const SemaphoreSharedPtrVec& semaphores)
     -> std::vector<VkSemaphore> {
   std::vector<VkSemaphore> result;
   result.reserve(semaphores.size());

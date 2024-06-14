@@ -16,9 +16,9 @@ Queue::Queue(LogicalDeviceSharedPtr device, const QueueFamily& queue_family,
 }
 
 auto Queue::submit(const CommandBufferPtr& command_buffer,
-                   const SemaphorePtrVec& wait_semaphores,
+                   const SemaphoreSharedPtrVec& wait_semaphores,
                    const PipelineStageFlagsVec& wait_stages,
-                   const SemaphorePtrVec& signal_semaphores,
+                   const SemaphoreSharedPtrVec& signal_semaphores,
                    const FenceSharedPtr& fence) const -> void {
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -40,17 +40,18 @@ auto Queue::submit(const CommandBufferPtr& command_buffer,
 }
 
 auto Queue::submitAndWaitIdle(const CommandBufferPtr& command_buffer,
-                              const SemaphorePtrVec& wait_semaphores,
+                              const SemaphoreSharedPtrVec& wait_semaphores,
                               const PipelineStageFlagsVec& wait_stages,
-                              const SemaphorePtrVec& signal_semaphores,
+                              const SemaphoreSharedPtrVec& signal_semaphores,
                               const FenceSharedPtr& fence) const -> void {
   submit(command_buffer, wait_semaphores, wait_stages, signal_semaphores,
          fence);
   vkQueueWaitIdle(queue_);
 }
 
-auto Queue::present(const SwapchainPtr& swapchain, uint32_t image_index,
-                    const SemaphorePtrVec& wait_semaphores) const -> VkResult {
+auto Queue::present(const SwapchainSharedPtr& swapchain, uint32_t image_index,
+                    const SemaphoreSharedPtrVec& wait_semaphores) const
+    -> VkResult {
   VkPresentInfoKHR present_info{};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   auto vk_wait_semaphores = Semaphore::handles(wait_semaphores);

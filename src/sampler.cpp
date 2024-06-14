@@ -4,14 +4,15 @@
 #include "tupi/physical_device.h"
 
 namespace tupi {
-Sampler::Sampler(LogicalDeviceSharedPtr logical_device)
+Sampler::Sampler(LogicalDeviceSharedPtr logical_device, VkFilter mag_filter,
+                 VkFilter min_filter, VkSamplerAddressMode address_mode_u,
+                 VkSamplerAddressMode address_mode_t)
     : logical_device_(std::move(logical_device)) {
-  VkSamplerCreateInfo info{};
-  info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  info.magFilter = VK_FILTER_LINEAR;
-  info.minFilter = VK_FILTER_LINEAR;
-  info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  VkSamplerCreateInfo info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+  info.magFilter = mag_filter;
+  info.minFilter = min_filter;
+  info.addressModeU = address_mode_u;
+  info.addressModeV = address_mode_t;
   info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   info.anisotropyEnable = VK_TRUE;
   info.maxAnisotropy =

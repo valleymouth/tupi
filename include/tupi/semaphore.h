@@ -16,7 +16,7 @@ class Semaphore {
   Semaphore& operator=(Semaphore&&) = default;
 
   auto handle() const -> VkSemaphore { return semaphore_; }
-  static auto handles(const SemaphorePtrVec& semaphores)
+  static auto handles(const SemaphoreSharedPtrVec& semaphores)
       -> std::vector<VkSemaphore>;
 
  private:

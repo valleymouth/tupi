@@ -18,7 +18,7 @@ class Surface : public ISurface {
   Surface& operator=(Surface&& other) = default;
 
   auto handle() const -> VkSurfaceKHR override { return surface_; }
-  auto window() const -> IWindowPtr override { return window_; }
+  auto window() const -> IWindowSharedPtr override { return window_; }
 
  private:
   EngineSharedPtr engine_{};

@@ -53,6 +53,11 @@ auto PhysicalDevice::enumerate(EngineSharedPtr engine)
     vkGetPhysicalDeviceProperties(vk_device, &device->properties_);
     vkGetPhysicalDeviceFeatures(vk_device, &device->features_);
     device->extensions_ = ExtensionSet::enumerate(device);
+    // Check for bindless support.
+    VkPhysicalDeviceFeatures2 device_features{
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        &device->indexing_features_};
+    vkGetPhysicalDeviceFeatures2(vk_device, &device_features);
   }
   return result;
 }

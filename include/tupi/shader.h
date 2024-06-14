@@ -24,7 +24,7 @@ class Shader {
     return pipeline_create_info_;
   }
 
-  static auto pipelineCreateInfos(const ShaderPtrVec& shaders)
+  static auto pipelineCreateInfos(const ShaderSharedPtrVec& shaders)
       -> std::vector<VkPipelineShaderStageCreateInfo>;
 
  private:

@@ -21,8 +21,8 @@ Engine::Engine(const std::string& app_name, uint32_t app_version,
                                 app_name.c_str(),
                                 app_version,
                                 "Tupi",
-                                VK_MAKE_API_VERSION(0, 0, 1, 0),
-                                VK_API_VERSION_1_0};
+                                VK_MAKE_API_VERSION(0, 1, 0, 0),
+                                VK_API_VERSION_1_3};
 
   VkInstanceCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

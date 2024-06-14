@@ -7,7 +7,7 @@
 
 namespace tupi {
 SwapchainSupportDetail::SwapchainSupportDetail(
-    PhysicalDeviceSharedPtr physical_device, ISurfacePtr surface)
+    PhysicalDeviceSharedPtr physical_device, ISurfaceSharedPtr surface)
     : physical_device_(std::move(physical_device)),
       surface_(std::move(surface)) {
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_->handle(),

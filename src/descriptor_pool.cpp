@@ -13,6 +13,7 @@ DescriptorPool::DescriptorPool(LogicalDeviceSharedPtr logical_device,
   create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes_.size());
   create_info.pPoolSizes = pool_sizes_.data();
   create_info.maxSets = max_sets;
+  create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
   if (vkCreateDescriptorPool(logical_device_->handle(), &create_info, nullptr,
                              &descriptor_pool_) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create descriptor pool!");

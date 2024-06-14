@@ -8,7 +8,9 @@
 namespace tupi {
 class Sampler {
  public:
-  explicit Sampler(LogicalDeviceSharedPtr logical_device);
+  explicit Sampler(LogicalDeviceSharedPtr logical_device, VkFilter mag_filter,
+                   VkFilter min_filter, VkSamplerAddressMode address_mode_u,
+                   VkSamplerAddressMode address_mode_t);
   ~Sampler();
   Sampler(const Sampler&) = delete;
   auto operator=(const Sampler&) -> Sampler& = delete;

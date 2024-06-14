@@ -32,17 +32,19 @@ class Swapchain {
   auto format() const -> VkFormat { return format_; }
   auto sharingMode() const -> VkSharingMode { return sharing_mode_; }
   auto hasDepth() const -> bool { return static_cast<bool>(depth_image_); }
-  auto depthImageView() const -> ImageViewPtr { return depth_image_view_; }
+  auto depthImageView() const -> ImageView2DSharedPtr {
+    return depth_image_view_;
+  }
   auto graphicsQueueFamilyIndex() const -> uint32_t {
     return graphics_queue_family_.index();
   }
   auto presentQueueFamilyIndex() const -> uint32_t {
     return present_queue_family_.index();
   }
-  auto acquireNextImage(const SemaphorePtr& semaphore) const
+  auto acquireNextImage(const SemaphoreSharedPtr& semaphore) const
       -> std::tuple<VkResult, uint32_t>;
   auto recreate() -> void;
-  auto createFramebuffers(RenderPassPtr render_pass) -> void;
+  auto createFramebuffers(RenderPassSharedPtr render_pass) -> void;
 
  private:
   auto createSwapchain(bool depth) -> void;
@@ -54,8 +56,8 @@ class Swapchain {
   VkSwapchainKHR swapchain_{VK_NULL_HANDLE};
   VkExtent2D extent_{};
   VkFormat format_{};
-  Image2DPtr depth_image_{};
-  ImageViewPtr depth_image_view_{};
+  Image2DSharedPtr depth_image_{};
+  ImageView2DSharedPtr depth_image_view_{};
   VkSharingMode sharing_mode_{VK_SHARING_MODE_EXCLUSIVE};
 };
 }  // namespace tupi

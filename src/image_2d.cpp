@@ -9,6 +9,7 @@
 #include "tupi/command_buffer.h"
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
+#include "tupi/physical_device.h"
 #include "tupi/swapchain.h"
 
 namespace tupi {
@@ -74,16 +75,20 @@ auto Image2D::resize(const VkExtent2D& extent) -> void {
 
 auto Image2D::createFromFile(const CommandPoolSharedPtr& command_pool,
                              const Queue& queue,
-                             const std::filesystem::path& path) -> Image2DPtr {
+                             const std::filesystem::path& path, VkFormat format)
+    -> Image2DSharedPtr {
   int width, height, channels;
-  stbi_uc* pixels =
-      stbi_load(path.string().c_str(), &width, &height, &channels, 0);
+  // Force 4 channels for now since VK_FORMAT_R8G8B8_SRGB is not always
+  // supported.
+  int required_channels = 4;
+  stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels,
+                              required_channels);
 
   if (!pixels) {
     throw std::runtime_error("Failed to load texture image!");
   }
 
-  VkDeviceSize size = width * height * channels;
+  VkDeviceSize size = width * height * required_channels;
   const auto& logical_device = command_pool->logicalDevice();
   auto buffer = Buffer::createShared<stbi_uc>(
       logical_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -94,14 +99,14 @@ auto Image2D::createFromFile(const CommandPoolSharedPtr& command_pool,
 
   auto result = std::make_shared<Image2D>(
       logical_device,
-      ImageInfo2D(VK_FORMAT_R8G8B8A8_SRGB,
+      ImageInfo2D(format,
                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                   VkExtent2D{static_cast<uint32_t>(width),
                              static_cast<uint32_t>(height)}));
 
   {
     auto command_buffer = std::make_unique<CommandBuffer>(command_pool);
-    command_buffer->transitionImageLayout(result, VK_FORMAT_R8G8B8A8_SRGB,
+    command_buffer->transitionImageLayout(result, format,
                                           VK_IMAGE_LAYOUT_UNDEFINED,
                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     command_buffer->record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -116,7 +121,7 @@ auto Image2D::createFromFile(const CommandPoolSharedPtr& command_pool,
   {
     auto command_buffer = std::make_unique<CommandBuffer>(command_pool);
     command_buffer->transitionImageLayout(
-        result, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        result, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     command_buffer->record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     queue.submitAndWaitIdle(command_buffer);

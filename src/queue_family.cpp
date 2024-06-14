@@ -4,7 +4,8 @@
 #include "tupi/surface.h"
 
 namespace tupi {
-auto QueueFamily::hasPresentSupport(const ISurfacePtr& surface) const -> bool {
+auto QueueFamily::hasPresentSupport(const ISurfaceSharedPtr& surface) const
+    -> bool {
   VkBool32 present_support = false;
   vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_->handle(),
                                        queue_family_index_, surface->handle(),

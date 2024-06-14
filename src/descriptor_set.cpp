@@ -8,34 +8,45 @@
 #include "tupi/image_view.h"
 #include "tupi/logical_device.h"
 #include "tupi/sampler.h"
+#include "tupi/texture.h"
 #include "tupi/utility.h"
 
 namespace tupi {
-auto DescriptorSet::update(const BufferSharedPtr buffer) -> void {
-  VkDescriptorBufferInfo buffer_info{};
-  buffer_info.buffer = buffer->handle();
-  buffer_info.offset = 0;
-  buffer_info.range = buffer->size();
+auto DescriptorSet::update(const LogicalDeviceSharedPtr& logical_device,
+                           const WriteDescriptorSetVec& writes) -> void {
+  using WriteVec = std::vector<VkWriteDescriptorSet>;
+  using BufferInfoVec = std::vector<VkDescriptorBufferInfo>;
+  using ImageInfoVec = std::vector<VkDescriptorImageInfo>;
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = descriptor_set_.handle;
-  write.dstBinding = 0;
-  write.dstArrayElement = 0;
-  write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  write.descriptorCount = 1;
-  write.pBufferInfo = &buffer_info;
-  write.pImageInfo = nullptr;        // Optional
-  write.pTexelBufferView = nullptr;  // Optional
-
-  vkUpdateDescriptorSets(descriptor_pool_->logicalDevice()->handle(), 1, &write,
-                         0, nullptr);
+  WriteVec vk_writes(writes.size(), {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+  BufferInfoVec vk_buffer_infos(writes.size());
+  ImageInfoVec vk_image_infos(writes.size());
+  size_t index = 0;
+  for (const auto& write : writes) {
+    std::visit(
+        [&](auto&& resource) {
+          using T = std::decay_t<decltype(resource)>;
+          if constexpr (std::is_same_v<T, BufferSharedPtr>) {
+            write.descriptor_set->update(write, vk_writes.at(index),
+                                         vk_buffer_infos.at(index), resource);
+          } else if constexpr (std::is_same_v<T, ITextureSharedPtr>) {
+            write.descriptor_set->update(write, vk_writes.at(index),
+                                         vk_image_infos.at(index), resource);
+          } else {
+            // static_assert(false,
+            //               "Illegal resource type in DescriptorSet::update!");
+          }
+          ++index;
+        },
+        write.resource);
+  }
+  vkUpdateDescriptorSets(logical_device->handle(), writes.size(),
+                         vk_writes.data(), 0, nullptr);
 }
 
 auto DescriptorSet::create(
     DescriptorPoolSharedPtr descriptor_pool,
-    DescriptorSetLayoutSharedPtrVec descriptor_set_layouts,
-    BufferPtrVec buffers, ImageViewPtrVec image_views, SamplerPtrVec samplers)
+    DescriptorSetLayoutSharedPtrVec descriptor_set_layouts)
     -> DescriptorSetSharedPtrVec {
   VkDescriptorSetAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -56,50 +67,54 @@ auto DescriptorSet::create(
   result.reserve(vk_descriptor_sets.size());
   int index = 0;
   for (const auto& vk_descriptor_set : vk_descriptor_sets) {
-    const auto& buffer = buffers.at(index);
-    VkDescriptorBufferInfo buffer_info{};
-    buffer_info.buffer = buffer->handle();
-    buffer_info.offset = 0;
-    buffer_info.range = buffer->size();
-
-    VkDescriptorImageInfo image_info{};
-    image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    image_info.imageView = image_views.at(index)->handle();
-    image_info.sampler = samplers.at(index)->handle();
-
-    std::array<VkWriteDescriptorSet, 2> write{};
-    write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write[0].dstSet = vk_descriptor_set;
-    write[0].dstBinding = 0;
-    write[0].dstArrayElement = 0;
-    write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write[0].descriptorCount = 1;
-    write[0].pBufferInfo = &buffer_info;
-    write[0].pImageInfo = nullptr;        // Optional
-    write[0].pTexelBufferView = nullptr;  // Optional
-
-    write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write[1].dstSet = vk_descriptor_set;
-    write[1].dstBinding = 1;
-    write[1].dstArrayElement = 0;
-    write[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write[1].descriptorCount = 1;
-    write[1].pImageInfo = &image_info;
-    write[1].pBufferInfo = nullptr;       // Optional
-    write[1].pTexelBufferView = nullptr;  // Optional
-
-    vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(write.size()),
-                           write.data(), 0, nullptr);
-
     auto descriptor_set = std::make_shared<DescriptorSet>(Private{});
     descriptor_set->descriptor_pool_ = descriptor_pool;
     descriptor_set->descriptor_set_layout_ =
         std::move(descriptor_set_layouts.at(index));
-    descriptor_set->buffer_ = buffer;
     descriptor_set->descriptor_set_ = vk_descriptor_set;
-    result.emplace_back(std::move(descriptor_set));
+    result.push_back(std::move(descriptor_set));
     ++index;
   }
   return result;
+}
+
+auto DescriptorSet::update(const WriteDescriptorSet& write,
+                           VkWriteDescriptorSet& vk_write,
+                           VkDescriptorBufferInfo& info,
+                           const BufferSharedPtr& buffer) -> void {
+  info.buffer = buffer->handle();
+  info.offset = 0;
+  info.range = buffer->size();
+
+  vk_write.dstSet = descriptor_set_.handle;
+  vk_write.dstBinding = write.binding;
+  vk_write.dstArrayElement = write.array_element;
+  if (buffer->isStorage()) {
+    vk_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  } else {
+    vk_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  }
+  vk_write.descriptorCount = 1;
+  vk_write.pBufferInfo = &info;
+  vk_write.pImageInfo = nullptr;        // Optional
+  vk_write.pTexelBufferView = nullptr;  // Optional
+}
+
+auto DescriptorSet::update(const WriteDescriptorSet& write,
+                           VkWriteDescriptorSet& vk_write,
+                           VkDescriptorImageInfo& info,
+                           const ITextureSharedPtr& texture) -> void {
+  info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  info.imageView = texture->imageView()->handle();
+  info.sampler = texture->sampler()->handle();
+
+  vk_write.dstSet = descriptor_set_.handle;
+  vk_write.dstBinding = write.binding;
+  vk_write.dstArrayElement = write.array_element;
+  vk_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  vk_write.descriptorCount = 1;
+  vk_write.pImageInfo = &info;
+  vk_write.pBufferInfo = nullptr;       // Optional
+  vk_write.pTexelBufferView = nullptr;  // Optional
 }
 }  // namespace tupi

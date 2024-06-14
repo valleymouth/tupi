@@ -4,12 +4,12 @@
 #include "tupi/swapchain.h"
 
 namespace tupi {
-SwapchainImage::SwapchainImage(SwapchainImage::Private, SwapchainPtr swapchain,
-                               VkImage image)
+SwapchainImage::SwapchainImage(SwapchainImage::Private,
+                               SwapchainSharedPtr swapchain, VkImage image)
     : swapchain_(std::move(swapchain)), image_(image) {}
 
-auto SwapchainImage::enumerate(const SwapchainPtr& swapchain)
-    -> SwapchainImageSharedPtrVec {
+auto SwapchainImage::enumerate(const SwapchainSharedPtr& swapchain)
+    -> IImageSharedPtrVec {
   uint32_t count;
   const auto& logical_device = swapchain->logicalDevice();
   vkGetSwapchainImagesKHR(logical_device->handle(), swapchain->handle(), &count,
@@ -17,7 +17,7 @@ auto SwapchainImage::enumerate(const SwapchainPtr& swapchain)
   std::vector<VkImage> images(count);
   vkGetSwapchainImagesKHR(logical_device->handle(), swapchain->handle(), &count,
                           images.data());
-  SwapchainImageSharedPtrVec result;
+  IImageSharedPtrVec result;
   result.reserve(count);
   for (const auto& vk_image : images) {
     auto& image = result.emplace_back(
