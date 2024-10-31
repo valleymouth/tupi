@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "tupi/buffer.h"
+#include "tupi/camera.h"
 #include "tupi/command_buffer.h"
 #include "tupi/command_pool.h"
 #include "tupi/descriptor_pool.h"
@@ -16,6 +17,7 @@
 #include "tupi/fence.h"
 #include "tupi/frame.h"
 #include "tupi/framebuffer.h"
+#include "tupi/glfw/input.h"
 #include "tupi/glfw/surface.h"
 #include "tupi/glfw/window.h"
 #include "tupi/gltf/accessor.h"
@@ -459,6 +461,21 @@ int main() {
   }
   tupi::DescriptorSet::update(logical_device, writes);
 
+  tupi::CameraSharedPtr camera = std::make_shared<tupi::Camera>(
+      tupi::CameraInfo{0.1f, 10.0f, glm::radians(45.0f),
+                       extent.width / (float)extent.height});
+  camera->position = glm::vec3{1.0f, 0.0f, 1.0f};
+  camera->rotation =
+      glm::quat({0.0f, glm::radians(30.0f), glm::radians(180.0f)});
+
+  tupi::glfw::DefaultCameraInputSharedPtr camera_input =
+      std::make_shared<tupi::glfw::DefaultCameraInput>(camera);
+  window->addKeyboardObserver(camera_input);
+  window->addMouseObserver(camera_input);
+  for (auto& frame : frames) {
+    frame.addTickObserver(camera_input);
+  }
+
   uint32_t current_frame = 0;
   while (!glfwWindowShouldClose(window->handle())) {
     glfwPollEvents();
@@ -472,14 +489,9 @@ int main() {
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                             glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.model_inverse_transpose = glm::inverseTranspose(ubo.model);
-    auto eye = glm::vec3(1.0f, 0.0f, 1.0f);
-    auto center = glm::vec3(0.0f, 0.0f, 0.35f);
-    auto up = glm::vec3(0.0f, 0.0f, 1.0f);
-    ubo.view = glm::lookAt(eye, center, up);
-    ubo.projection = glm::perspective(
-        glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
-    ubo.projection[1][1] *= -1;
-    ubo.eye = eye;
+    ubo.view = camera->getViewMatrix();
+    ubo.projection = camera->getProjectionMatrix();
+    ubo.eye = camera->position;
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
     frames.at(current_frame)

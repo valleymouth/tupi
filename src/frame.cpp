@@ -8,6 +8,7 @@
 #include "tupi/semaphore.h"
 #include "tupi/surface.h"
 #include "tupi/swapchain.h"
+#include "tupi/tick.h"
 
 namespace tupi {
 Frame::Frame(const LogicalDeviceSharedPtr& logical_device,
@@ -15,7 +16,8 @@ Frame::Frame(const LogicalDeviceSharedPtr& logical_device,
     : command_buffer_(std::make_unique<CommandBuffer>(std::move(command_pool))),
       image_available_semaphore_(std::make_shared<Semaphore>(logical_device)),
       render_finished_semaphore_(std::make_shared<Semaphore>(logical_device)),
-      fence_(std::make_shared<Fence>(std::move(logical_device), true)) {}
+      fence_(std::make_shared<Fence>(std::move(logical_device), true)),
+      last_frame_time_point_(Clock::now()) {}
 
 auto Frame::draw(SwapchainSharedPtr& swapchain,
                  FramebufferSharedPtrVec& framebuffers,
@@ -25,6 +27,17 @@ auto Frame::draw(SwapchainSharedPtr& swapchain,
                  BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
                  uint32_t vertex_count, BufferSharedPtr index_buffer,
                  Offset index_offset, uint32_t index_count) -> void {
+  auto now = Clock::now();
+  float delta_time_in_seconds =
+      std::chrono::duration<float, std::chrono::seconds::period>(
+          now - last_frame_time_point_)
+          .count();
+  last_frame_time_point_ = now;
+
+  for (const auto& tick_observer : tick_observers_) {
+    tick_observer->tick(delta_time_in_seconds);
+  }
+
   fence_->wait();
   auto acquired_result =
       swapchain->acquireNextImage(image_available_semaphore_);
@@ -69,5 +82,9 @@ auto Frame::draw(SwapchainSharedPtr& swapchain,
   } else if (present_result != VK_SUCCESS) {
     throw std::runtime_error("Failed to present swap chain image!");
   }
+}
+
+auto Frame::addTickObserver(ITickObserverSharedPtr tick_observer) -> void {
+  tick_observers_.push_back(std::move(tick_observer));
 }
 }  // namespace tupi

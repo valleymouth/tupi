@@ -37,6 +37,7 @@ add_compile_options($<$<CONFIG:DEBUG>:-DDEBUG>)
 
 set(SOURCES
   src/buffer.cpp
+  src/camera.cpp
   src/command_buffer.cpp
   src/command_pool.cpp
   src/engine.cpp
@@ -47,6 +48,7 @@ set(SOURCES
   src/fence.cpp
   src/frame.cpp
   src/framebuffer.cpp
+  src/glfw/input.cpp
   src/glfw/surface.cpp
   src/glfw/window.cpp
   src/gltf/accessor.cpp

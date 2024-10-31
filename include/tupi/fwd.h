@@ -28,6 +28,7 @@ using VertexInputAttributeDescription = VkVertexInputAttributeDescription;
 using VertexInputBindingDescription = VkVertexInputBindingDescription;
 
 class Buffer;
+class Camera;
 class CommandBuffer;
 class CommandPool;
 class DescriptorPool;
@@ -40,11 +41,14 @@ class Frame;
 class Framebuffer;
 class IImage;
 class IImageView;
+class IKeyboardObserver;
 class Image2D;
 class ImageView2D;
+class IMouseObserver;
 class InputAssembly;
 class ISurface;
 class ITexture;
+class ITickObserver;
 class IWindow;
 class LogicalDevice;
 class Pipeline;
@@ -69,12 +73,12 @@ class Texture2D;
 class VertexInput;
 class ViewportState;
 
-struct Camera;
 struct Mesh;
 struct Node;
 struct QueueCreateInfo;
 
 using BufferSharedPtr = std::shared_ptr<Buffer>;
+using CameraSharedPtr = std::shared_ptr<Camera>;
 using CommandBufferPtr = std::unique_ptr<CommandBuffer>;
 using CommandPoolSharedPtr = std::shared_ptr<CommandPool>;
 using DescriptorPoolSharedPtr = std::shared_ptr<DescriptorPool>;
@@ -85,10 +89,13 @@ using FenceSharedPtr = std::shared_ptr<Fence>;
 using FramebufferSharedPtr = std::shared_ptr<Framebuffer>;
 using IImageSharedPtr = std::shared_ptr<IImage>;
 using IImageViewSharedPtr = std::shared_ptr<IImageView>;
+using IKeyboardObserverSharedPtr = std::shared_ptr<IKeyboardObserver>;
 using Image2DSharedPtr = std::shared_ptr<Image2D>;
 using ImageView2DSharedPtr = std::shared_ptr<ImageView2D>;
+using IMouseObserverSharedPtr = std::shared_ptr<IMouseObserver>;
 using ISurfaceSharedPtr = std::shared_ptr<ISurface>;
 using ITextureSharedPtr = std::shared_ptr<ITexture>;
+using ITickObserverSharedPtr = std::shared_ptr<ITickObserver>;
 using IWindowSharedPtr = std::shared_ptr<IWindow>;
 using LogicalDeviceSharedPtr = std::shared_ptr<LogicalDevice>;
 using PipelineSharedPtr = std::shared_ptr<Pipeline>;
@@ -100,7 +107,6 @@ using SemaphoreSharedPtr = std::shared_ptr<Semaphore>;
 using ShaderSharedPtr = std::shared_ptr<Shader>;
 using SwapchainSharedPtr = std::shared_ptr<Swapchain>;
 using SwapchainImageSharedPtr = std::shared_ptr<SwapchainImage>;
-using ITextureSharedPtr = std::shared_ptr<ITexture>;
 
 using AttachmentDescriptionVec = std::vector<AttachmentDescription>;
 using AttachmentReferenceVec = std::vector<AttachmentReference>;
@@ -114,9 +120,12 @@ using DynamicStateVec = std::vector<DynamicState>;
 using FrameVec = std::vector<Frame>;
 using FramebufferSharedPtrVec = std::vector<FramebufferSharedPtr>;
 using IImageSharedPtrVec = std::vector<IImageSharedPtr>;
+using IKeyboardObserverSharedPtrVec = std::vector<IKeyboardObserverSharedPtr>;
 using Image2DSharedPtrVec = std::vector<Image2DSharedPtr>;
 using IImageViewSharedPtrVec = std::vector<IImageViewSharedPtr>;
 using ImageView2DSharedPtrVec = std::vector<ImageView2DSharedPtr>;
+using IMouseObserverSharedPtrVec = std::vector<IMouseObserverSharedPtr>;
+using ITickObserverSharedPtrVec = std::vector<ITickObserverSharedPtr>;
 using OffsetVec = std::vector<Offset>;
 using PhysicalDeviceSharedPtrVec = std::vector<PhysicalDeviceSharedPtr>;
 using PipelineColorBlendAttachmentStateVec =
@@ -138,9 +147,11 @@ using VertexInputBindingDescriptionVec =
     std::vector<VertexInputBindingDescription>;
 
 namespace glfw {
+class DefaultCameraInput;
 class Surface;
 class Window;
 
+using DefaultCameraInputSharedPtr = std::shared_ptr<DefaultCameraInput>;
 using SurfaceSharedPtr = std::shared_ptr<Surface>;
 using WindowSharedPtr = std::shared_ptr<Window>;
 }  // namespace glfw
