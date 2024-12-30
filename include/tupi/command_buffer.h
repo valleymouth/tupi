@@ -1,13 +1,29 @@
 #pragma once
 
 #include <functional>
-#include <vector>
+#include <map>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
 #include "tupi/handle.h"
 
 namespace tupi {
+struct Command {
+  using Index = uint32_t;
+  using Callable = std::function<void(CommandBuffer&)>;
+
+  auto operator()(CommandBuffer& command_buffer) const -> void {
+    callable(command_buffer);
+  }
+
+  auto operator<(const Command& other) const -> bool {
+    return index < other.index;
+  }
+
+  Index index{0};
+  Callable callable{};
+};
+
 class CommandBuffer {
  public:
   CommandBuffer(CommandPoolSharedPtr command_pool);
@@ -18,6 +34,7 @@ class CommandBuffer {
   CommandBuffer& operator=(CommandBuffer&& other) = default;
 
   auto handle() const -> VkCommandBuffer { return command_buffer_; }
+  auto add(const CommandVec& commands) -> void;
   auto beginRenderPass(FramebufferSharedPtr framebuffer) -> void;
   auto endRenderPass() -> void;
   auto bindPipeline(PipelineSharedPtr pipeline) -> void;
@@ -43,8 +60,6 @@ class CommandBuffer {
                              VkImageLayout from, VkImageLayout to) -> void;
 
  private:
-  using Command = std::function<void(CommandBuffer&)>;
-
   CommandPoolSharedPtr command_pool_{};
   Handle<VkCommandBuffer> command_buffer_{};
   std::vector<Command> commands_{};

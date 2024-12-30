@@ -81,13 +81,20 @@ set(SOURCES
   src/swapchain.cpp
   src/swapchain_image.cpp
   src/swapchain_support_detail.cpp
-  src/texture_2d.cpp)
+  src/texture_2d.cpp
+  src/third_party/imgui/imgui.cpp
+  src/third_party/imgui/imgui_widgets.cpp
+  src/third_party/imgui/imgui_demo.cpp
+  src/third_party/imgui/imgui_draw.cpp
+  src/third_party/imgui/imgui_tables.cpp
+  src/third_party/imgui/imgui_impl_glfw.cpp
+  src/third_party/imgui/imgui_impl_vulkan.cpp)
 
 add_library(tupi ${SOURCES})
-target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb)
+target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb include/third_party/imgui)
 target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
 add_dependencies(tupi glfw glm json)
-target_compile_features(tupi PUBLIC cxx_std_20)
+target_compile_features(tupi PUBLIC cxx_std_23)
 
 add_subdirectory(apps)
 add_subdirectory(tests)

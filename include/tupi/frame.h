@@ -7,7 +7,6 @@
 #include "tupi/fwd.h"
 
 namespace tupi {
-
 class Frame {
  public:
   Frame(const LogicalDeviceSharedPtr& logical_device,
@@ -15,7 +14,7 @@ class Frame {
   auto draw(SwapchainSharedPtr& swapchain,
             FramebufferSharedPtrVec& framebuffers,
             const PipelineSharedPtr& pipeline, const Queue& graphics_queue,
-            const Queue& present_queue,
+            const Queue& present_queue, const CommandVec& commands,
             DescriptorSetSharedPtrVec descriptor_sets,
             BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
             uint32_t vertex_count, BufferSharedPtr index_buffer = {},

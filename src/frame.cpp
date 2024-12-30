@@ -1,5 +1,7 @@
 #include "tupi/frame.h"
 
+#include <iostream>
+
 #include "tupi/fence.h"
 #include "tupi/framebuffer.h"
 #include "tupi/logical_device.h"
@@ -22,7 +24,7 @@ Frame::Frame(const LogicalDeviceSharedPtr& logical_device,
 auto Frame::draw(SwapchainSharedPtr& swapchain,
                  FramebufferSharedPtrVec& framebuffers,
                  const PipelineSharedPtr& pipeline, const Queue& graphics_queue,
-                 const Queue& present_queue,
+                 const Queue& present_queue, const CommandVec& commands,
                  DescriptorSetSharedPtrVec descriptor_sets,
                  BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
                  uint32_t vertex_count, BufferSharedPtr index_buffer,
@@ -53,6 +55,7 @@ auto Frame::draw(SwapchainSharedPtr& swapchain,
   fence_->reset();
   auto image_index = std::get<uint32_t>(acquired_result);
   command_buffer_->reset();
+  command_buffer_->add(commands);
   auto& framebuffer = framebuffers.at(image_index);
   command_buffer_->beginRenderPass(framebuffer);
   command_buffer_->bindPipeline(pipeline);
@@ -65,6 +68,7 @@ auto Frame::draw(SwapchainSharedPtr& swapchain,
   command_buffer_->draw(std::move(vertex_buffers), std::move(offsets),
                         vertex_count, std::move(index_buffer), index_offset,
                         index_count);
+
   command_buffer_->endRenderPass();
   command_buffer_->record();
   tupi::SemaphoreSharedPtrVec wait_semaphores = {image_available_semaphore_};

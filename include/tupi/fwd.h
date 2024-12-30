@@ -29,8 +29,11 @@ using VertexInputBindingDescription = VkVertexInputBindingDescription;
 
 class Buffer;
 class Camera;
+class Command;
 class CommandBuffer;
 class CommandPool;
+template <typename... Args>
+class EventBase;
 class DescriptorPool;
 class DescriptorSet;
 class DescriptorSetLayout;
@@ -81,6 +84,8 @@ using BufferSharedPtr = std::shared_ptr<Buffer>;
 using CameraSharedPtr = std::shared_ptr<Camera>;
 using CommandBufferPtr = std::unique_ptr<CommandBuffer>;
 using CommandPoolSharedPtr = std::shared_ptr<CommandPool>;
+template <typename... Args>
+using EventBaseSharedPtr = std::shared_ptr<EventBase<Args...>>;
 using DescriptorPoolSharedPtr = std::shared_ptr<DescriptorPool>;
 using DescriptorSetSharedPtr = std::shared_ptr<DescriptorSet>;
 using DescriptorSetLayoutSharedPtr = std::shared_ptr<DescriptorSetLayout>;
@@ -111,6 +116,7 @@ using SwapchainImageSharedPtr = std::shared_ptr<SwapchainImage>;
 using AttachmentDescriptionVec = std::vector<AttachmentDescription>;
 using AttachmentReferenceVec = std::vector<AttachmentReference>;
 using BufferSharedPtrVec = std::vector<BufferSharedPtr>;
+using CommandVec = std::vector<Command>;
 using DescriptorPoolSizeVec = std::vector<DescriptorPoolSize>;
 using DescriptorSetSharedPtrVec = std::vector<DescriptorSetSharedPtr>;
 using DescriptorSetLayoutSharedPtrVec =

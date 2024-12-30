@@ -1,5 +1,6 @@
 #include "tupi/command_buffer.h"
 
+#include <limits>
 #include <vector>
 
 #include "tupi/buffer.h"
@@ -32,8 +33,13 @@ CommandBuffer::~CommandBuffer() {
                        command_pool_->handle(), 1, &command_buffer_);
 }
 
+auto CommandBuffer::add(const CommandVec& commands) -> void {
+  commands_.append_range(commands);
+}
+
 auto CommandBuffer::beginRenderPass(FramebufferSharedPtr framebuffer) -> void {
-  commands_.emplace_back(
+  commands_.emplace_back(Command{
+      0,
       [framebuffer_ = std::move(framebuffer)](CommandBuffer& command_buffer) {
         auto extent = framebuffer_->extent();
         VkRenderPassBeginInfo begin_info{};
@@ -50,76 +56,83 @@ auto CommandBuffer::beginRenderPass(FramebufferSharedPtr framebuffer) -> void {
 
         vkCmdBeginRenderPass(command_buffer.handle(), &begin_info,
                              VK_SUBPASS_CONTENTS_INLINE);
-      });
+      }});
 }
 
 auto CommandBuffer::endRenderPass() -> void {
-  commands_.emplace_back([](CommandBuffer& command_buffer) {
-    vkCmdEndRenderPass(command_buffer.handle());
-  });
+  commands_.emplace_back(Command{std::numeric_limits<Command::Index>::max(),
+                                 [](CommandBuffer& command_buffer) {
+                                   vkCmdEndRenderPass(command_buffer.handle());
+                                 }});
 }
 
 auto CommandBuffer::bindPipeline(PipelineSharedPtr pipeline) -> void {
-  commands_.emplace_back(
-      [pipeline_ = std::move(pipeline)](CommandBuffer& command_buffer) {
+  commands_.emplace_back(Command{
+      0, [pipeline_ = std::move(pipeline)](CommandBuffer& command_buffer) {
         vkCmdBindPipeline(command_buffer.handle(),
                           VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_->handle());
-      });
+      }});
 }
 
 auto CommandBuffer::bindDescriptorSets(
     PipelineLayoutSharedPtr pipeline_layout,
     DescriptorSetSharedPtrVec descriptor_sets) -> void {
-  commands_.emplace_back([pipeline_layout_ = std::move(pipeline_layout),
-                          descriptor_sets_ = std::move(descriptor_sets)](
-                             CommandBuffer& command_buffer) {
-    auto vk_descriptor_sets =
-        std::vector<VkDescriptorSet>(handles(descriptor_sets_));
-    vkCmdBindDescriptorSets(command_buffer.handle(),
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_layout_->handle(), 0,
-                            static_cast<uint32_t>(vk_descriptor_sets.size()),
-                            vk_descriptor_sets.data(), 0, nullptr);
-  });
+  commands_.emplace_back(Command{
+      0, [pipeline_layout_ = std::move(pipeline_layout),
+          descriptor_sets_ =
+              std::move(descriptor_sets)](CommandBuffer& command_buffer) {
+        auto vk_descriptor_sets =
+            std::vector<VkDescriptorSet>(handles(descriptor_sets_));
+        vkCmdBindDescriptorSets(
+            command_buffer.handle(), VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout_->handle(), 0,
+            static_cast<uint32_t>(vk_descriptor_sets.size()),
+            vk_descriptor_sets.data(), 0, nullptr);
+      }});
 }
 
 auto CommandBuffer::setViewport(VkViewport viewport) -> void {
-  commands_.emplace_back([=](CommandBuffer& command_buffer) {
-    vkCmdSetViewport(command_buffer.handle(), 0, 1, &viewport);
-  });
+  commands_.emplace_back(Command{0, [=](CommandBuffer& command_buffer) {
+                                   vkCmdSetViewport(command_buffer.handle(), 0,
+                                                    1, &viewport);
+                                 }});
 }
 
 auto CommandBuffer::setScissor(VkRect2D rect) -> void {
-  commands_.emplace_back([=](CommandBuffer& command_buffer) {
-    vkCmdSetScissor(command_buffer.handle(), 0, 1, &rect);
-  });
+  commands_.emplace_back(Command{0, [=](CommandBuffer& command_buffer) {
+                                   vkCmdSetScissor(command_buffer.handle(), 0,
+                                                   1, &rect);
+                                 }});
 }
 
 auto CommandBuffer::draw(BufferSharedPtrVec vertex_buffers,
                          OffsetVec vertex_offsets, uint32_t vertex_count,
                          BufferSharedPtr index_buffer, Offset index_offset,
                          uint32_t index_count) -> void {
-  commands_.emplace_back([=, vertex_buffers_ = std::move(vertex_buffers),
-                          vertex_offsets_ = std::move(vertex_offsets),
-                          index_buffer_ = std::move(index_buffer)](
-                             CommandBuffer& command_buffer) {
-    auto vk_vertex_buffers = Buffer::handles(vertex_buffers_);
-    vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
-                           vk_vertex_buffers.data(), vertex_offsets_.data());
-    if (index_buffer_) {
-      vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
-                           index_offset, VK_INDEX_TYPE_UINT32);
-      vkCmdDrawIndexed(command_buffer.handle(), index_count, 1, 0, 0, 0);
-    } else {
-      vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
-    }
-  });
+  commands_.emplace_back(Command{
+      0,
+      [=, vertex_buffers_ = std::move(vertex_buffers),
+       vertex_offsets_ = std::move(vertex_offsets),
+       index_buffer_ = std::move(index_buffer)](CommandBuffer& command_buffer) {
+        auto vk_vertex_buffers = Buffer::handles(vertex_buffers_);
+        vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
+                               vk_vertex_buffers.data(),
+                               vertex_offsets_.data());
+        if (index_buffer_) {
+          vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
+                               index_offset, VK_INDEX_TYPE_UINT32);
+          vkCmdDrawIndexed(command_buffer.handle(), index_count, 1, 0, 0, 0);
+        } else {
+          vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
+        }
+      }});
 }
 
 auto CommandBuffer::copy(BufferSharedPtr source, BufferSharedPtr destination,
                          VkDeviceSize size, VkDeviceSize source_offset,
                          VkDeviceSize destination_offset) -> void {
-  commands_.emplace_back(
+  commands_.emplace_back(Command{
+      0,
       [=, source_ = std::move(source),
        destination_ = std::move(destination)](CommandBuffer& command_buffer) {
         VkBufferCopy buffer_copy{};
@@ -128,12 +141,13 @@ auto CommandBuffer::copy(BufferSharedPtr source, BufferSharedPtr destination,
         buffer_copy.size = size;
         vkCmdCopyBuffer(command_buffer.handle(), source_->handle(),
                         destination_->handle(), 1, &buffer_copy);
-      });
+      }});
 }
 
 auto CommandBuffer::copy(BufferSharedPtr source, Image2DSharedPtr destination)
     -> void {
-  commands_.emplace_back(
+  commands_.emplace_back(Command{
+      0,
       [=, source_ = std::move(source),
        destination_ = std::move(destination)](CommandBuffer& command_buffer) {
         VkBufferImageCopy region{};
@@ -152,7 +166,7 @@ auto CommandBuffer::copy(BufferSharedPtr source, Image2DSharedPtr destination)
         vkCmdCopyBufferToImage(
             command_buffer.handle(), source_->handle(), destination_->handle(),
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-      });
+      }});
 }
 
 auto CommandBuffer::record(const FramebufferSharedPtr& framebuffer,
@@ -197,6 +211,7 @@ auto CommandBuffer::record(const FramebufferSharedPtr& framebuffer,
   scissor.extent = extent;
   vkCmdSetScissor(command_buffer_, 0, 1, &scissor);
 
+  std::stable_sort(commands_.begin(), commands_.end());
   for (const auto& command : commands_) {
     command(*this);
   }
@@ -217,6 +232,7 @@ auto CommandBuffer::record(VkCommandBufferUsageFlags flags) -> void {
     throw std::runtime_error("Failed to begin recording command buffer!");
   }
 
+  std::stable_sort(commands_.begin(), commands_.end());
   for (const auto& command : commands_) {
     command(*this);
   }
@@ -230,43 +246,42 @@ auto CommandBuffer::transitionImageLayout(IImageSharedPtr image,
                                           VkFormat format, VkImageLayout from,
                                           VkImageLayout to) -> void {
   commands_.emplace_back(
-      [=, image_ = std::move(image)](CommandBuffer& command_buffer) {
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = from;
-        barrier.newLayout = to;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image_->handle();
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+      Command{0, [=, image_ = std::move(image)](CommandBuffer& command_buffer) {
+                VkImageMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = from;
+                barrier.newLayout = to;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = image_->handle();
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = 1;
 
-        VkPipelineStageFlags source_stage;
-        VkPipelineStageFlags destination_stage;
+                VkPipelineStageFlags source_stage;
+                VkPipelineStageFlags destination_stage;
 
-        if (from == VK_IMAGE_LAYOUT_UNDEFINED &&
-            to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-          barrier.srcAccessMask = 0;
-          barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-          source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-          destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-                   to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-          barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-          source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-          destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } else {
-          throw std::invalid_argument("Unsupported layout transition!");
-        }
+                if (from == VK_IMAGE_LAYOUT_UNDEFINED &&
+                    to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                  barrier.srcAccessMask = 0;
+                  barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                  source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                  destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+                } else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                           to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                  barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                  source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+                  destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                } else {
+                  throw std::invalid_argument("Unsupported layout transition!");
+                }
 
-        vkCmdPipelineBarrier(command_buffer.handle(), source_stage,
-                             destination_stage, 0, 0, nullptr, 0, nullptr, 1,
-                             &barrier);
-      });
+                vkCmdPipelineBarrier(command_buffer.handle(), source_stage,
+                                     destination_stage, 0, 0, nullptr, 0,
+                                     nullptr, 1, &barrier);
+              }});
 }
-
 }  // namespace tupi

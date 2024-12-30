@@ -9,6 +9,7 @@ class Queue {
   Queue(LogicalDeviceSharedPtr device, const QueueFamily& queue_family,
         uint32_t queue_index);
 
+  auto handle() const -> VkQueue { return queue_; }
   auto submit(const CommandBufferPtr& command_buffer,
               const SemaphoreSharedPtrVec& wait_semaphores = {},
               const PipelineStageFlagsVec& wait_stages = {},

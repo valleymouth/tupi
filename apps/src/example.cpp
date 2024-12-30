@@ -5,6 +5,9 @@
 #include <nlohmann/json.hpp>
 #include <variant>
 
+#include "third_party/imgui/imgui.h"
+#include "third_party/imgui/imgui_impl_glfw.h"
+#include "third_party/imgui/imgui_impl_vulkan.h"
 #include "tupi/buffer.h"
 #include "tupi/camera.h"
 #include "tupi/command_buffer.h"
@@ -476,7 +479,32 @@ int main() {
     frame.addTickObserver(camera_input);
   }
 
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+
+  auto imgui_descriptor_pool = std::make_shared<tupi::DescriptorPool>(
+      logical_device,
+      tupi::DescriptorPoolSizeVec{
+          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}},
+      1);
+
+  ImGui_ImplGlfw_InitForVulkan(window->handle(), true);
+  ImGui_ImplVulkan_InitInfo imgui_init_info{};
+  imgui_init_info.Instance = engine->handle();
+  imgui_init_info.PhysicalDevice = physical_device->handle();
+  imgui_init_info.Device = logical_device->handle();
+  imgui_init_info.QueueFamily = graphics_queue_family.index();
+  imgui_init_info.Queue = graphics_queue.handle();
+  imgui_init_info.DescriptorPool = imgui_descriptor_pool->handle();
+  imgui_init_info.RenderPass = render_pass->handle();
+  imgui_init_info.Subpass = 0;
+  imgui_init_info.MinImageCount = 2;
+  imgui_init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+  imgui_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  ImGui_ImplVulkan_Init(&imgui_init_info);
+
   uint32_t current_frame = 0;
+  bool imgui_show_demo_window = true;
   while (!glfwWindowShouldClose(window->handle())) {
     glfwPollEvents();
 
@@ -494,16 +522,34 @@ int main() {
     ubo.eye = camera->position;
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow(&imgui_show_demo_window);
+    ImGui::Render();
+
     frames.at(current_frame)
         .draw(swapchain, framebuffers, pipeline, graphics_queue, present_queue,
+              tupi::CommandVec{
+                  tupi::Command{10,
+                                [](tupi::CommandBuffer& command_buffer) {
+                                  ImDrawData* draw_data = ImGui::GetDrawData();
+                                  ImGui_ImplVulkan_RenderDrawData(
+                                      draw_data, command_buffer.handle());
+                                }}},
               {descriptor_sets.at(current_frame), descriptor_sets.at(2)},
               tupi::BufferSharedPtrVec{vertex_buffer}, tupi::OffsetVec{0},
               static_cast<uint32_t>(vertices.size()), index_buffer, 0,
               static_cast<uint32_t>(indices.size()));
+
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 
   logical_device->waitIdle();
+
+  ImGui_ImplVulkan_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   glfwTerminate();
 
