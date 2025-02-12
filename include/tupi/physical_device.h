@@ -14,6 +14,8 @@ class PhysicalDevice {
 
   auto handle() const -> VkPhysicalDevice { return physical_device_; }
 
+  auto engine() const -> EngineSharedPtr { return engine_; }
+
   auto deviceType() const -> VkPhysicalDeviceType {
     return properties_.deviceType;
   }

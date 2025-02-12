@@ -56,6 +56,7 @@ set(SOURCES
   src/gltf/buffer.cpp
   src/gltf/file.cpp
   src/gltf/mesh_primitive.cpp
+  src/gui.cpp
   src/image.cpp
   src/image_2d.cpp
   src/image_view_2d.cpp

@@ -60,10 +60,11 @@ auto CommandBuffer::beginRenderPass(FramebufferSharedPtr framebuffer) -> void {
 }
 
 auto CommandBuffer::endRenderPass() -> void {
-  commands_.emplace_back(Command{std::numeric_limits<Command::Index>::max(),
-                                 [](CommandBuffer& command_buffer) {
-                                   vkCmdEndRenderPass(command_buffer.handle());
-                                 }});
+  commands_.emplace_back(
+      Command{std::numeric_limits<Command::ExecutionOrder>::max(),
+              [](CommandBuffer& command_buffer) {
+                vkCmdEndRenderPass(command_buffer.handle());
+              }});
 }
 
 auto CommandBuffer::bindPipeline(PipelineSharedPtr pipeline) -> void {

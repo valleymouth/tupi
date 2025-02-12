@@ -9,7 +9,7 @@
 
 namespace tupi {
 struct Command {
-  using Index = uint32_t;
+  using ExecutionOrder = uint32_t;
   using Callable = std::function<void(CommandBuffer&)>;
 
   auto operator()(CommandBuffer& command_buffer) const -> void {
@@ -17,10 +17,10 @@ struct Command {
   }
 
   auto operator<(const Command& other) const -> bool {
-    return index < other.index;
+    return execution_order < other.execution_order;
   }
 
-  Index index{0};
+  ExecutionOrder execution_order{0};
   Callable callable{};
 };
 

@@ -19,6 +19,10 @@ class RenderPass {
   RenderPass(RenderPass&&) = default;
   RenderPass& operator=(RenderPass&&) = default;
 
+  auto logicalDevice() const -> LogicalDeviceSharedPtr {
+    return logical_device_;
+  }
+
   auto handle() const -> VkRenderPass { return render_pass_; }
 
  private:
