@@ -2,18 +2,20 @@
 
 #include "tupi/descriptor_set_layout.h"
 #include "tupi/logical_device.h"
+#include "tupi/shader.h"
 #include "tupi/utility.h"
 
 namespace tupi {
 PipelineLayout::PipelineLayout(
     LogicalDeviceSharedPtr logical_device,
     DescriptorSetLayoutSharedPtrVec descriptor_set_layouts)
-    : logical_device_(std::move(logical_device)) {
+    : logical_device_(std::move(logical_device)),
+      descriptor_set_layouts_(std::move(descriptor_set_layouts)) {
   VkPipelineLayoutCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   create_info.setLayoutCount =
-      static_cast<uint32_t>(descriptor_set_layouts.size());
-  auto vk_descriptor_set_layouts = handles(descriptor_set_layouts);
+      static_cast<uint32_t>(descriptor_set_layouts_.size());
+  auto vk_descriptor_set_layouts = handles(descriptor_set_layouts_);
   create_info.pSetLayouts = vk_descriptor_set_layouts.data();
   create_info.pushConstantRangeCount = 0;     // Optional
   create_info.pPushConstantRanges = nullptr;  // Optional

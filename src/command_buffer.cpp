@@ -92,6 +92,29 @@ auto CommandBuffer::bindDescriptorSets(
       }});
 }
 
+auto CommandBuffer::bindVertexBuffers(BufferSharedPtrVec vertex_buffers,
+                                      OffsetVec vertex_offsets) -> void {
+  commands_.emplace_back(Command{
+      0, [=, vertex_buffers_ = std::move(vertex_buffers),
+          vertex_offsets_ =
+              std::move(vertex_offsets)](CommandBuffer& command_buffer) {
+        auto vk_vertex_buffers = Buffer::handles(vertex_buffers_);
+        vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
+                               vk_vertex_buffers.data(),
+                               vertex_offsets_.data());
+      }});
+}
+
+auto CommandBuffer::bindIndexBuffer(BufferSharedPtr index_buffer,
+                                    Offset index_offset) -> void {
+  commands_.emplace_back(Command{
+      0, [=, index_buffer_ =
+                 std::move(index_buffer)](CommandBuffer& command_buffer) {
+        vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
+                             index_offset, VK_INDEX_TYPE_UINT32);
+      }});
+}
+
 auto CommandBuffer::setViewport(VkViewport viewport) -> void {
   commands_.emplace_back(Command{0, [=](CommandBuffer& command_buffer) {
                                    vkCmdSetViewport(command_buffer.handle(), 0,
@@ -106,26 +129,29 @@ auto CommandBuffer::setScissor(VkRect2D rect) -> void {
                                  }});
 }
 
-auto CommandBuffer::draw(BufferSharedPtrVec vertex_buffers,
-                         OffsetVec vertex_offsets, uint32_t vertex_count,
-                         BufferSharedPtr index_buffer, Offset index_offset,
-                         uint32_t index_count) -> void {
+auto CommandBuffer::draw(uint32_t vertex_count) -> void {
+  commands_.emplace_back(Command{0, [=](CommandBuffer& command_buffer) {
+                                   vkCmdDraw(command_buffer.handle(),
+                                             vertex_count, 1, 0, 0);
+                                 }});
+}
+
+auto CommandBuffer::drawIndexed(uint32_t index_count) -> void {
+  commands_.emplace_back(Command{0, [=](CommandBuffer& command_buffer) {
+                                   vkCmdDrawIndexed(command_buffer.handle(),
+                                                    index_count, 1, 0, 0, 0);
+                                 }});
+}
+
+auto CommandBuffer::drawIndexedIndirect(BufferSharedPtr indirect_command_buffer,
+                                        Offset offset, uint32_t draw_count,
+                                        uint32_t stride) -> void {
   commands_.emplace_back(Command{
-      0,
-      [=, vertex_buffers_ = std::move(vertex_buffers),
-       vertex_offsets_ = std::move(vertex_offsets),
-       index_buffer_ = std::move(index_buffer)](CommandBuffer& command_buffer) {
-        auto vk_vertex_buffers = Buffer::handles(vertex_buffers_);
-        vkCmdBindVertexBuffers(command_buffer.handle(), 0, 1,
-                               vk_vertex_buffers.data(),
-                               vertex_offsets_.data());
-        if (index_buffer_) {
-          vkCmdBindIndexBuffer(command_buffer.handle(), index_buffer_->handle(),
-                               index_offset, VK_INDEX_TYPE_UINT32);
-          vkCmdDrawIndexed(command_buffer.handle(), index_count, 1, 0, 0, 0);
-        } else {
-          vkCmdDraw(command_buffer.handle(), vertex_count, 1, 0, 0);
-        }
+      0, [=, indirect_command_buffer_ = std::move(indirect_command_buffer)](
+             CommandBuffer& command_buffer) {
+        vkCmdDrawIndexedIndirect(command_buffer.handle(),
+                                 indirect_command_buffer_->handle(), offset,
+                                 draw_count, stride);
       }});
 }
 

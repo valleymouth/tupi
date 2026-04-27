@@ -1,12 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 
-struct Material {
-    uvec4 textures; // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
-    vec4 base_color_factor;
-    vec4 metallic_roughness_occlusion_factor;
-};
-
 layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 model_inverse_transpose;
@@ -15,13 +9,19 @@ layout(binding = 0) uniform UniformBufferObject {
     vec3 eye;
 };
 
+struct Material {
+    uvec4 textures; // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
+    vec4 base_color_factor;
+    vec4 metallic_roughness_occlusion_factor;
+};
+
 layout(binding = 1) readonly buffer MaterialBuffer {
     Material materials[];
 };
 
 // We can alias bindless textures of different types.
-layout(set = 1, binding = 0) uniform sampler2D textures_2d[];
-layout(set = 1, binding = 0) uniform sampler3D textures_3d[];
+layout(set = 1, binding = 0) uniform sampler2D bindless_textures_2d[];
+layout(set = 1, binding = 0) uniform sampler3D bindless_textures_3d[];
 
 layout(location = 0) in vec3 in_position; // in world space.
 layout(location = 1) in vec2 in_tex_coord;
@@ -76,8 +76,8 @@ vec3 encodeSrgb(vec3 c) {
 }
 
 float heaviside(float x) {
-    if ( x > 0.0 ) return 1.0;
-    else return 0.0;
+    if (x > 0.0) return 1.0;
+    return 0.0;
 }
 
 void main() {
@@ -86,7 +86,7 @@ void main() {
     const vec4 metallic_roughness_occlusion_factor = materials[in_material_index].metallic_roughness_occlusion_factor;
     vec4 base_color = base_color_factor;
     if (textures.x != INVALID_TEXTURE_INDEX) {
-        base_color *= texture(textures_2d[nonuniformEXT(textures.x)], in_tex_coord);
+        base_color *= texture(bindless_textures_2d[nonuniformEXT(textures.x)], in_tex_coord);
     }
 
     vec3 tangent = normalize(in_tangent);
@@ -105,14 +105,14 @@ void main() {
         // tangent, binormal and normal vectors are already in world space.
         mat3 tangent_to_world = mat3(tangent, binormal, normal);
         // Compute normal vector
-        vec3 normal_map = texture(textures_2d[nonuniformEXT(textures.z)], in_tex_coord).xyz;
+        vec3 normal_map = texture(bindless_textures_2d[nonuniformEXT(textures.z)], in_tex_coord).xyz;
         normal_map = normal_map * 2.0 - 1.0;
         normal = normalize(tangent_to_world * normal_map);
     }
 
     const vec3 light_position = vec3(5.0, 5.0, 5.0);
     const float light_intensity = 80.0;
-    const float light_range = 20.0;
+    const float light_range = 1000.0;
     // Exception for variable naming standards here just because this is a classic way to name the
     // vectors.
     vec3 V = normalize(eye - in_position);
@@ -126,18 +126,18 @@ void main() {
     float HdotV = clamp(dot(H, V), 0, 1);
     float NdotH = clamp(dot(N, H), 0, 1);
 
-    float metalness = metallic_roughness_occlusion_factor.x;
+    float metalness = 0.5;//metallic_roughness_occlusion_factor.x;
     float roughness = metallic_roughness_occlusion_factor.y;
 
     if (textures.y != INVALID_TEXTURE_INDEX) {
-        vec4 metallic_roughness_texture = texture(textures_2d[nonuniformEXT(textures.y)], in_tex_coord);
+        vec4 metallic_roughness_texture = texture(bindless_textures_2d[nonuniformEXT(textures.y)], in_tex_coord);
         roughness *= metallic_roughness_texture.g;
         metalness *= metallic_roughness_texture.b;
     }
 
     float occlusion = metallic_roughness_occlusion_factor.z;
     if (textures.w != INVALID_TEXTURE_INDEX) {
-        vec4 occlusion_texture = texture(textures_2d[nonuniformEXT(textures.w)], in_tex_coord);
+        vec4 occlusion_texture = texture(bindless_textures_2d[nonuniformEXT(textures.w)], in_tex_coord);
         occlusion *= occlusion_texture.r;
     }
 
@@ -169,7 +169,6 @@ void main() {
         vec3 fresnel_mix = mix(diffuse_brdf, vec3(specular_brdf), fr);
 
         result = mix(fresnel_mix, conductor_fresnel, metalness);
-
     }
     out_color = vec4(encodeSrgb(result), base_color.a);
 }

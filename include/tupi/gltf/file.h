@@ -2,13 +2,19 @@
 #define TUPI_GLTF_FILE_H
 
 #include <filesystem>
+#include <functional>
 #include <vector>
 
 #include "tupi/fwd.h"
 
 namespace tupi::gltf {
 struct File {
+  using NodeTraverseFunction =
+      std::function<bool(const Node& node, const glm::mat4& matrix)>;
+
   auto load(const std::filesystem::path& path) -> void;
+  auto traverseNodes(uint32_t scene_index, NodeTraverseFunction function)
+      -> void;
 
   uint32_t default_scene{};
   std::filesystem::path path;

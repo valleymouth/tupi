@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_ENGINE_H
+#define TUPI_ENGINE_H
 
 #include <string>
 #include <vector>
@@ -28,3 +29,5 @@ class Engine {
   Handle<VkInstance> instance_{};
 };
 }  // namespace tupi
+
+#endif  // TUPI_ENGINE_H

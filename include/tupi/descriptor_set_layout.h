@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <vulkan/vulkan.hpp>
 
 #include "tupi/fwd.h"
@@ -7,12 +8,38 @@
 #include "tupi/logical_device.h"
 
 namespace tupi {
-class DescriptorSetLayout {
- protected:
-  struct Private {};
+struct DescriptorSetLayoutInfo {
+  bool bindless{false};
+  DescriptorSetLayoutBindingVec bindings{};
 
+  auto merge(const DescriptorSetLayoutInfo& other) -> void;
+};
+
+struct DescriptorSetLayoutConstructor {
+  virtual VkDescriptorSetLayout construct(
+      const LogicalDeviceSharedPtr& logical_device,
+      const DescriptorSetLayoutBindingVec& bindings) const;
+};
+
+struct DescriptorSetLayoutBindlessConstructor
+    : public DescriptorSetLayoutConstructor {
+  virtual VkDescriptorSetLayout construct(
+      const LogicalDeviceSharedPtr& logical_device,
+      const DescriptorSetLayoutBindingVec& bindings) const override;
+};
+
+class DescriptorSetLayout {
  public:
-  explicit DescriptorSetLayout(Private) {}
+  // Construct an empty descriptor set layout. This is needed if you are setting
+  // a pipeline layout with a gap in the descriptor set indices. Let's say your
+  // shaders are using just set = 0 and set = 2, you will need to include a
+  // dummy descriptor set layout in index 1.
+  explicit DescriptorSetLayout(LogicalDeviceSharedPtr logical_device);
+  explicit DescriptorSetLayout(
+      LogicalDeviceSharedPtr logical_device,
+      DescriptorSetLayoutBindingVec bindings,
+      const DescriptorSetLayoutConstructor& constructor =
+          DescriptorSetLayoutConstructor{});
   virtual ~DescriptorSetLayout();
   DescriptorSetLayout(const DescriptorSetLayout&) = delete;
   DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
@@ -23,31 +50,6 @@ class DescriptorSetLayout {
     return descriptor_set_layout_;
   }
 
-  template <typename T>
-  static auto create(LogicalDeviceSharedPtr logical_device,
-                     DescriptorSetLayoutBindingVec bindings)
-      -> DescriptorSetLayoutSharedPtr {
-    VkDescriptorSetLayoutCreateInfo create_info{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    auto binding_count = static_cast<uint32_t>(bindings.size());
-    create_info.bindingCount = binding_count;
-    create_info.pBindings = bindings.data();
-
-    auto result = std::make_shared<T>(typename T::Private{});
-    auto descriptor_set_layout =
-        result->create(logical_device, bindings, create_info);
-    result->logical_device_ = std::move(logical_device);
-    result->bindings_ = std::move(bindings);
-    result->descriptor_set_layout_ = descriptor_set_layout;
-    return result;
-  }
-
- protected:
-  virtual auto create(const LogicalDeviceSharedPtr& logical_device,
-                      const DescriptorSetLayoutBindingVec& bindings,
-                      VkDescriptorSetLayoutCreateInfo& create_info)
-      -> VkDescriptorSetLayout;
-
  private:
   LogicalDeviceSharedPtr logical_device_{};
   DescriptorSetLayoutBindingVec bindings_{};
@@ -55,18 +57,10 @@ class DescriptorSetLayout {
 };
 
 class BindlessDescriptorSetLayout : public DescriptorSetLayout {
-  friend class DescriptorSetLayout;
-
- protected:
-  struct Private {};
-
  public:
-  explicit BindlessDescriptorSetLayout(Private)
-      : DescriptorSetLayout(DescriptorSetLayout::Private{}) {}
-
-  auto create(const LogicalDeviceSharedPtr& logical_device,
-              const DescriptorSetLayoutBindingVec& bindings,
-              VkDescriptorSetLayoutCreateInfo& create_info)
-      -> VkDescriptorSetLayout override;
+  explicit BindlessDescriptorSetLayout(LogicalDeviceSharedPtr logical_device,
+                                       DescriptorSetLayoutBindingVec bindings)
+      : DescriptorSetLayout(std::move(logical_device), std::move(bindings),
+                            DescriptorSetLayoutBindlessConstructor{}) {}
 };
 }  // namespace tupi

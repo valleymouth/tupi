@@ -1,3 +1,4 @@
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -125,9 +126,13 @@ struct MaterialBufferObject {
                                                             0.0f};
 };
 
+struct TransformBufferObject {
+  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 model_inverse_transpose;
+};
+
 int main() {
   constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-  constexpr uint32_t MAX_BINDLESS_RESOURCES = 1024;
   constexpr uint32_t MAX_DESCRIPTOR_SETS_PER_FRAME = 32;
   constexpr uint32_t MAX_MATERIAL_COUNT = 256;
 
@@ -174,7 +179,8 @@ int main() {
   auto logical_device = std::make_shared<tupi::LogicalDevice>(
       physical_device,
       tupi::QueueCreateInfoVec{{graphics_queue_family, {1.0f}}},
-      tupi::ExtensionSet{VK_KHR_SWAPCHAIN_EXTENSION_NAME});
+      tupi::ExtensionSet{VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                         VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME});
   auto graphics_queue = tupi::Queue{logical_device, graphics_queue_family, 0};
   auto present_queue_family = graphics_queue_family;
   if (!graphics_queue_family.hasPresentSupport(surface)) {
@@ -188,11 +194,10 @@ int main() {
       present_queue_family);
 
   auto vertex_shader = std::make_shared<tupi::Shader>(
-      logical_device, "../../../shaders/vert.spv", tupi::Shader::Vertex);
+      logical_device, "../../../shaders/vert.spv");
   auto fragment_shader = std::make_shared<tupi::Shader>(
-      logical_device, "../../../shaders/frag.spv", tupi::Shader::Fragment);
+      logical_device, "../../../shaders/frag.spv");
 
-  auto vertex_input = tupi::PipelineVertexInput::create<Vertex>();
   auto input_assembly = tupi::PipelineInputAssembly{};
   auto viewport_state = tupi::PipelineViewportState{
       VkViewport{0.0f, 0.0f, static_cast<float>(extent.width),
@@ -210,26 +215,24 @@ int main() {
                   VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}});
   auto depth_stencil_state = tupi::PipelineDepthStencilState{};
   auto dynamic_state = tupi::PipelineDynamicState{};
-  auto descriptor_set_layout =
-      tupi::DescriptorSetLayout::create<tupi::DescriptorSetLayout>(
-          logical_device,
-          tupi::DescriptorSetLayoutBindingVec{
-              tupi::DescriptorSetLayoutBinding{
-                  0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT},
-              tupi::DescriptorSetLayoutBinding{
-                  1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
-                  VK_SHADER_STAGE_FRAGMENT_BIT}});
+  auto descriptor_set_layout = std::make_shared<tupi::DescriptorSetLayout>(
+      logical_device,
+      tupi::DescriptorSetLayoutBindingVec{
+          tupi::DescriptorSetLayoutBinding{
+              0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT},
+          tupi::DescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          tupi::DescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           1, VK_SHADER_STAGE_VERTEX_BIT},
+          tupi::DescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           1, VK_SHADER_STAGE_VERTEX_BIT}});
   auto bindless_descriptor_set_layout =
-      tupi::DescriptorSetLayout::create<tupi::BindlessDescriptorSetLayout>(
+      std::make_shared<tupi::BindlessDescriptorSetLayout>(
           logical_device,
           tupi::DescriptorSetLayoutBindingVec{tupi::DescriptorSetLayoutBinding{
               0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              MAX_BINDLESS_RESOURCES, VK_SHADER_STAGE_FRAGMENT_BIT}});
-  auto pipeline_layout = std::make_shared<tupi::PipelineLayout>(
-      logical_device,
-      tupi::DescriptorSetLayoutSharedPtrVec{descriptor_set_layout,
-                                            bindless_descriptor_set_layout});
+              tupi::MAX_BINDLESS_RESOURCES, VK_SHADER_STAGE_FRAGMENT_BIT}});
 
   auto attachment_descriptions = tupi::AttachmentDescriptionVec{
       {0, swapchain->format(), VK_SAMPLE_COUNT_1_BIT,
@@ -251,22 +254,54 @@ int main() {
       std::move(subpass_descriptions));
   auto pipeline = std::make_shared<tupi::Pipeline>(
       logical_device, tupi::ShaderSharedPtrVec{vertex_shader, fragment_shader},
-      std::move(vertex_input), input_assembly, std::move(viewport_state),
-      std::move(rasterization_state), std::move(multisample_state),
-      std::move(color_blend_state), std::move(depth_stencil_state),
-      std::move(dynamic_state), std::move(pipeline_layout), render_pass);
+      input_assembly, std::move(viewport_state), std::move(rasterization_state),
+      std::move(multisample_state), std::move(color_blend_state),
+      std::move(depth_stencil_state), std::move(dynamic_state), render_pass);
   auto framebuffers = tupi::Framebuffer::enumerate(swapchain, render_pass);
   auto command_pool = std::make_shared<tupi::CommandPool>(
       logical_device, graphics_queue_family);
 
   tupi::gltf::File gltf_file;
   gltf_file.load("../../../resources/FlightHelmet.gltf");
+  // gltf_file.load("../../../resources/GearboxAssy.gltf");
+
+  std::vector<VkDrawIndexedIndirectCommand> indirect_commands(
+      gltf_file.meshes.size(), {0, 0, 0, 0, 0});
+
+  uint32_t instance_count = 0;
+  std::map<uint32_t, std::vector<glm::mat4>> model_matrix_map;
+  gltf_file.traverseNodes(
+      gltf_file.default_scene,
+      [&](const tupi::gltf::Node& node, const glm::mat4& matrix) {
+        if (node.mesh.has_value()) {
+          ++indirect_commands[node.mesh.value()].instanceCount;
+          if (auto model_matrix_iterator =
+                  model_matrix_map.find(node.mesh.value());
+              model_matrix_iterator != model_matrix_map.end()) {
+            model_matrix_iterator->second.push_back(matrix);
+          } else {
+            model_matrix_map.emplace(node.mesh.value(),
+                                     std::vector<glm::mat4>{matrix});
+          }
+          ++instance_count;
+        }
+        return true;
+      });
 
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
+  std::vector<TransformBufferObject> transforms(instance_count);
+  std::vector<uint32_t> transform_first_indices(gltf_file.meshes.size());
+  uint32_t model_matrix_count = 0;
   for (auto& mesh : gltf_file.meshes) {
+    transform_first_indices[mesh.index] = model_matrix_count;
+    for (const auto& matrix : model_matrix_map[mesh.index]) {
+      transforms[model_matrix_count++] = {matrix,
+                                          glm::inverseTranspose(matrix)};
+    }
     for (auto& primitive : mesh.primitives) {
       uint32_t vertex_offset = vertices.size();
+      indirect_commands[mesh.index].vertexOffset = vertex_offset;
       primitive.forEachPosition(
           gltf_file, [&](const glm::vec4& position, uint64_t) {
             Vertex vertex{};
@@ -294,11 +329,12 @@ int main() {
             vertices[index + vertex_offset].tangent =
                 glm::vec4(tangent.z, tangent.x, tangent.y, tangent.w);
           });
-      std::uint32_t max_index = 0;
+      indirect_commands[mesh.index].firstIndex = indices.size();
       primitive.forEachIndex(gltf_file, [&](uint32_t vertex_index, uint64_t) {
-        indices.push_back(vertex_index + vertex_offset);
-        max_index = std::max(max_index, vertex_index);
+        indices.push_back(vertex_index);
       });
+      indirect_commands[mesh.index].indexCount =
+          gltf_file.accessors[primitive.indices.value()].count;
     }
   }
 
@@ -314,6 +350,31 @@ int main() {
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   tupi::Buffer::copy<uint32_t>(indices, index_buffer, command_pool,
+                               graphics_queue);
+
+  auto indirect_command_buffer =
+      tupi::Buffer::createShared<VkDrawIndexedIndirectCommand>(
+          logical_device, static_cast<uint32_t>(indirect_commands.size()),
+          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+              VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  tupi::Buffer::copy<VkDrawIndexedIndirectCommand>(
+      indirect_commands, indirect_command_buffer, command_pool, graphics_queue);
+
+  auto model_matrix_buffer = tupi::Buffer::createShared<TransformBufferObject>(
+      logical_device, static_cast<uint32_t>(transforms.size()),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  tupi::Buffer::copy<TransformBufferObject>(transforms, model_matrix_buffer,
+                                            command_pool, graphics_queue);
+
+  auto model_matrix_first_index_buffer = tupi::Buffer::createShared<uint32_t>(
+      logical_device, static_cast<uint32_t>(transform_first_indices.size()),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  tupi::Buffer::copy<uint32_t>(transform_first_indices,
+                               model_matrix_first_index_buffer, command_pool,
                                graphics_queue);
 
   std::vector<MaterialBufferObject> materials;
@@ -428,12 +489,17 @@ int main() {
   uniform_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
   tupi::BufferSharedPtrVec material_buffers;
   material_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
+  tupi::BufferSharedPtrVec model_matrix_buffers;
+  model_matrix_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
+  tupi::BufferSharedPtrVec model_matrix_first_index_buffers;
+  model_matrix_first_index_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
   auto descriptor_pool = std::make_shared<tupi::DescriptorPool>(
       logical_device,
       tupi::DescriptorPoolSizeVec{
           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT},
-          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_FRAMES_IN_FLIGHT},
-          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_RESOURCES}},
+          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 * MAX_FRAMES_IN_FLIGHT},
+          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+           tupi::MAX_BINDLESS_RESOURCES}},
       MAX_FRAMES_IN_FLIGHT * MAX_DESCRIPTOR_SETS_PER_FRAME);
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     frames.emplace_back(logical_device, command_pool);
@@ -452,13 +518,18 @@ int main() {
                                              command_pool, graphics_queue);
   }
   auto descriptor_sets = tupi::DescriptorSet::create(
-      descriptor_pool, {descriptor_set_layout, descriptor_set_layout,
-                        bindless_descriptor_set_layout});
+      descriptor_pool, tupi::DescriptorSetLayoutSharedPtrVec{
+                           descriptor_set_layout, descriptor_set_layout,
+                           bindless_descriptor_set_layout});
   tupi::WriteDescriptorSetVec writes = {
       {descriptor_sets.at(0), uniform_buffers.at(0)},
       {descriptor_sets.at(0), material_buffers.at(0), 1},
+      {descriptor_sets.at(0), model_matrix_buffer, 2},
+      {descriptor_sets.at(0), model_matrix_first_index_buffer, 3},
       {descriptor_sets.at(1), uniform_buffers.at(1)},
-      {descriptor_sets.at(1), material_buffers.at(1), 1}};
+      {descriptor_sets.at(1), material_buffers.at(1), 1},
+      {descriptor_sets.at(1), model_matrix_buffer, 2},
+      {descriptor_sets.at(1), model_matrix_first_index_buffer, 3}};
   uint32_t array_element = 0;
   for (const auto& texture : textures) {
     writes.push_back({descriptor_sets.at(2), texture, 0, array_element++});
@@ -466,7 +537,7 @@ int main() {
   tupi::DescriptorSet::update(logical_device, writes);
 
   tupi::CameraSharedPtr camera = std::make_shared<tupi::Camera>(
-      tupi::CameraInfo{0.1f, 10.0f, glm::radians(45.0f),
+      tupi::CameraInfo{0.1f, 1000.0f, glm::radians(45.0f),
                        extent.width / (float)extent.height});
   camera->position = glm::vec3{1.0f, 0.0f, 1.0f};
   camera->rotation =
@@ -485,27 +556,6 @@ int main() {
 
   auto gui = tupi::Gui(*window, render_pass, graphics_queue,
                        graphics_queue_family, MAX_FRAMES_IN_FLIGHT);
-
-  // auto imgui_descriptor_pool = std::make_shared<tupi::DescriptorPool>(
-  //     logical_device,
-  //     tupi::DescriptorPoolSizeVec{
-  //         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}},
-  //     1);
-
-  // ImGui_ImplGlfw_InitForVulkan(window->handle(), true);
-  // ImGui_ImplVulkan_InitInfo imgui_init_info{};
-  // imgui_init_info.Instance = engine->handle();
-  // imgui_init_info.PhysicalDevice = physical_device->handle();
-  // imgui_init_info.Device = logical_device->handle();
-  // imgui_init_info.QueueFamily = graphics_queue_family.index();
-  // imgui_init_info.Queue = graphics_queue.handle();
-  // imgui_init_info.DescriptorPool = imgui_descriptor_pool->handle();
-  // imgui_init_info.RenderPass = render_pass->handle();
-  // imgui_init_info.Subpass = 0;
-  // imgui_init_info.MinImageCount = 2;
-  // imgui_init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
-  // imgui_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-  // ImGui_ImplVulkan_Init(&imgui_init_info);
 
   uint32_t current_frame = 0;
   bool imgui_show_demo_window = true;
@@ -527,35 +577,29 @@ int main() {
     uniform_buffers.at(current_frame)->copy(ubo, true);  // keep it mapped
 
     gui.render();
-    // ImGui_ImplVulkan_NewFrame();
-    // ImGui_ImplGlfw_NewFrame();
-    // ImGui::NewFrame();
-    // ImGui::ShowDemoWindow(&imgui_show_demo_window);
-    // ImGui::Render();
 
     frames.at(current_frame)
-        .draw(
-            swapchain, framebuffers, pipeline, graphics_queue, present_queue,
-            tupi::CommandVec{gui.makeCommand()},
-            //     tupi::Command{10,
-            //                   [](tupi::CommandBuffer& command_buffer) {
-            //                     ImDrawData* draw_data = ImGui::GetDrawData();
-            //                     ImGui_ImplVulkan_RenderDrawData(
-            //                         draw_data, command_buffer.handle());
-            //                   }}},
-            {descriptor_sets.at(current_frame), descriptor_sets.at(2)},
-            tupi::BufferSharedPtrVec{vertex_buffer}, tupi::OffsetVec{0},
-            static_cast<uint32_t>(vertices.size()), index_buffer, 0,
-            static_cast<uint32_t>(indices.size()));
+        .drawIndirect(
+            {swapchain,
+             framebuffers,
+             pipeline,
+             graphics_queue,
+             present_queue,
+             tupi::CommandVec{gui.makeCommand()},
+             {descriptor_sets.at(current_frame), descriptor_sets.at(2)},
+             tupi::BufferSharedPtrVec{vertex_buffer},
+             tupi::OffsetVec{0},
+             indirect_command_buffer,
+             0,
+             static_cast<uint32_t>(gltf_file.meshes.size()),
+             sizeof(VkDrawIndexedIndirectCommand),
+             index_buffer,
+             0});
 
     current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 
   logical_device->waitIdle();
-
-  // ImGui_ImplVulkan_Shutdown();
-  // ImGui_ImplGlfw_Shutdown();
-  // ImGui::DestroyContext();
 
   glfwTerminate();
 

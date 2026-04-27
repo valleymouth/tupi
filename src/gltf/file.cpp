@@ -1,7 +1,9 @@
 #include "tupi/gltf/file.h"
 
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <stack>
 
 #include "tupi/gltf/accessor.h"
 #include "tupi/gltf/buffer.h"
@@ -68,6 +70,18 @@ auto readVector(const nlohmann::json& json) -> T {
   return result;
 }
 
+template <typename T>
+auto readMatrix(const nlohmann::json& json) -> T {
+  T result;
+  int index = 0;
+  for (const auto& elem : json) {
+    auto column_index = index / result.length();
+    auto row_index = index++ % result.length();
+    result[column_index][row_index] = elem.get<float>();
+  }
+  return result;
+}
+
 auto File::load(const std::filesystem::path& path) -> void {
   if (!std::filesystem::exists(path)) return;
   this->path = path;
@@ -86,19 +100,38 @@ auto File::load(const std::filesystem::path& path) -> void {
     }
     scenes.push_back(std::move(scene));
   }
+  uint32_t node_index = 0;
   for (const auto& json_node : json["nodes"]) {
-    Node node;
+    Node node{node_index++};
     for (const auto& [key, value] : json_node.items()) {
       if (key == "name") {
         node.name = value.get<std::string>();
       } else if (key == "mesh") {
         node.mesh = value.get<uint32_t>();
+      } else if (key == "matrix") {
+        node.matrix = readMatrix<glm::mat4>(value);
+        // glm::mat4 matrix = readMatrix<glm::mat4>(value);
+        // glm::vec3 scale;
+        // glm::quat rotation;
+        // glm::vec3 translation;
+        // glm::vec3 skew;
+        // glm::vec4 perspective;
+        // glm::decompose(matrix, scale, rotation, translation, skew,
+        // perspective); node.scale = scale; node.rotation = rotation;
+        // node.position = translation;
+      } else if (key == "camera") {
+        node.camera = value.get<uint32_t>();
+      } else if (key == "children") {
+        for (const auto& child : value) {
+          node.children.push_back(child.get<uint32_t>());
+        }
       }
     }
     nodes.push_back(std::move(node));
   }
+  uint32_t mesh_index = 0;
   for (const auto& json_mesh : json["meshes"]) {
-    Mesh mesh;
+    Mesh mesh{mesh_index++};
     for (const auto& [mesh_key, mesh_value] : json_mesh.items()) {
       if (mesh_key == "name") {
         mesh.name = mesh_value;
@@ -279,6 +312,38 @@ auto File::load(const std::filesystem::path& path) -> void {
       }
     }
     samplers.push_back(std::move(sampler));
+  }
+}
+
+auto File::traverseNodes(uint32_t scene_index, NodeTraverseFunction function)
+    -> void {
+  for (auto node_index : scenes[scene_index].nodes) {
+    auto traverse_recursive = [&](this const auto& self, const Node& node,
+                                  glm::mat4 matrix) {
+      if (node.matrix.has_value()) {
+        matrix = matrix * node.matrix.value();
+      } else {
+        matrix = glm::translate(matrix, node.position);
+        matrix = matrix * glm::mat4_cast(node.rotation);
+        matrix = glm::scale(matrix, node.scale);
+      }
+      // std::cout << static_cast<int>(node.index) << std::endl;
+      // matrix = glm::translate(matrix, node.position);
+      // matrix = matrix * glm::mat4_cast(node.rotation);
+      // matrix = glm::scale(matrix, node.scale);
+      if (!function(node, matrix)) {
+        return false;
+      }
+      for (auto child_index : node.children) {
+        if (!self(nodes[child_index], matrix)) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    glm::mat4 matrix = glm::mat4(1.0f);
+    traverse_recursive(nodes[node_index], matrix);
   }
 }
 }  // namespace tupi::gltf

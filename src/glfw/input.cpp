@@ -9,32 +9,32 @@
 namespace tupi::glfw {
 auto KeyboardObserver::onKeyPressed(GLFWwindow* window, int key, int modifiers)
     -> void {
-  std::cout << "Key pressed -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key pressed -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
 }
 auto KeyboardObserver::onKeyReleased(GLFWwindow* window, int key, int modifiers)
     -> void {
-  std::cout << "Key released -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key released -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
   if (key == GLFW_KEY_ESCAPE) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
 }
 auto KeyboardObserver::onKeyRepeated(GLFWwindow* window, int key, int modifiers)
     -> void {
-  std::cout << "Key repeated -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key repeated -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
 }
 
 auto MouseObserver::onMouseMove(GLFWwindow* window, double x, double y)
     -> void {
-  std::cout << "Mouse move -> x: " << x << ", y: " << y << std::endl;
+  // std::cout << "Mouse move -> x: " << x << ", y: " << y << std::endl;
 }
 
 auto MouseObserver::onMouseRelease(GLFWwindow* window, int button,
                                    int modifiers) -> void {
-  std::cout << "Mouse release -> button: " << button
-            << ", modifiers: " << modifiers << std::endl;
+  // std::cout << "Mouse release -> button: " << button
+  //           << ", modifiers: " << modifiers << std::endl;
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
@@ -43,8 +43,8 @@ DefaultCameraInput::DefaultCameraInput(CameraSharedPtr camera)
 
 auto DefaultCameraInput::onKeyPressed(GLFWwindow* window, int key,
                                       int modifiers) -> void {
-  std::cout << "Key pressed -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key pressed -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
   // WASD keys.
   if (key == GLFW_KEY_W) {
     pressed_keys_ |= static_cast<uint32_t>(KeyMask::Forward);
@@ -58,8 +58,8 @@ auto DefaultCameraInput::onKeyPressed(GLFWwindow* window, int key,
 }
 auto DefaultCameraInput::onKeyReleased(GLFWwindow* window, int key,
                                        int modifiers) -> void {
-  std::cout << "Key released -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key released -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
   if (key == GLFW_KEY_ESCAPE) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
@@ -76,13 +76,13 @@ auto DefaultCameraInput::onKeyReleased(GLFWwindow* window, int key,
 }
 auto DefaultCameraInput::onKeyRepeated(GLFWwindow* window, int key,
                                        int modifiers) -> void {
-  std::cout << "Key repeated -> key: " << key << ", modifier: " << modifiers
-            << std::endl;
+  // std::cout << "Key repeated -> key: " << key << ", modifier: " << modifiers
+  //           << std::endl;
 }
 
 auto DefaultCameraInput::onMouseMove(GLFWwindow* window, double x, double y)
     -> void {
-  std::cout << "Mouse move -> x: " << x << ", y: " << y << std::endl;
+  // std::cout << "Mouse move -> x: " << x << ", y: " << y << std::endl;
   if (pressed_mouse_buttons_ & static_cast<uint8_t>(MouseButtonMask::Right)) {
     camera_->rotation = glm::angleAxis(static_cast<float>(y - mouse_press_y_) *
                                            mouse_sensitivity_,
@@ -98,8 +98,8 @@ auto DefaultCameraInput::onMouseMove(GLFWwindow* window, double x, double y)
 
 auto DefaultCameraInput::onMousePress(GLFWwindow* window, int button,
                                       int modifiers) -> void {
-  std::cout << "Mouse press -> button: " << button
-            << ", modifiers: " << modifiers << std::endl;
+  // std::cout << "Mouse press -> button: " << button
+  //           << ", modifiers: " << modifiers << std::endl;
   if (button == GLFW_MOUSE_BUTTON_LEFT) {
     pressed_mouse_buttons_ |= static_cast<uint8_t>(MouseButtonMask::Left);
   } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
@@ -112,8 +112,8 @@ auto DefaultCameraInput::onMousePress(GLFWwindow* window, int button,
 
 auto DefaultCameraInput::onMouseRelease(GLFWwindow* window, int button,
                                         int modifiers) -> void {
-  std::cout << "Mouse release -> button: " << button
-            << ", modifiers: " << modifiers << std::endl;
+  // std::cout << "Mouse release -> button: " << button
+  //           << ", modifiers: " << modifiers << std::endl;
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -126,7 +126,7 @@ auto DefaultCameraInput::onMouseRelease(GLFWwindow* window, int button,
 }
 
 auto DefaultCameraInput::tick(float seconds) -> void {
-  std::cout << "Delta time: " << seconds << std::endl;
+  // std::cout << "Delta time: " << seconds << std::endl;
 
   if (pressed_mouse_buttons_ & static_cast<uint8_t>(MouseButtonMask::Right)) {
     // WASD keys.

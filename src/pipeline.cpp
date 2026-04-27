@@ -7,7 +7,7 @@
 
 namespace tupi {
 Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device,
-                   ShaderSharedPtrVec shaders, PipelineVertexInput vertex_input,
+                   ShaderSharedPtrVec shaders,
                    PipelineInputAssembly input_assembly,
                    PipelineViewportState viewport_state,
                    PipelineRasterizationState rasterization_state,
@@ -15,11 +15,9 @@ Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device,
                    PipelineColorBlendState color_blend_state,
                    PipelineDepthStencilState depth_stencil_state,
                    PipelineDynamicState dynamic_state,
-                   PipelineLayoutSharedPtr pipeline_layout,
                    RenderPassSharedPtr render_pass)
     : logical_device_(std::move(logical_device)),
       shaders_(std::move(shaders)),
-      vertex_input_(std::move(vertex_input)),
       input_assembly_(std::move(input_assembly)),
       viewport_state_(std::move(viewport_state)),
       rasterization_state_(std::move(rasterization_state)),
@@ -27,15 +25,22 @@ Pipeline::Pipeline(LogicalDeviceSharedPtr logical_device,
       color_blend_state_(std::move(color_blend_state)),
       depth_stencil_state_(std::move(depth_stencil_state)),
       dynamic_state_(std::move(dynamic_state)),
-      pipeline_layout_(std::move(pipeline_layout)),
+      pipeline_layout_(Shader::createPipelineLayout(logical_device_, shaders_)),
       render_pass_(std::move(render_pass)) {
   VkGraphicsPipelineCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   create_info.stageCount = shaders_.size();
   auto vk_shaders = Shader::pipelineCreateInfos(shaders_);
   create_info.pStages = vk_shaders.data();
-  auto vk_vertex_input = vertex_input_.pipelineCreateInfo();
-  create_info.pVertexInputState = &vk_vertex_input;
+
+  auto vertex_shader = std::ranges::find_if(shaders_, [](const auto& shader) {
+    return shader->stage() == VK_SHADER_STAGE_VERTEX_BIT;
+  });
+  if (vertex_shader != shaders_.end()) {
+    auto vk_vertex_input = (*vertex_shader)->vertexInputPipelineCreateInfo();
+    create_info.pVertexInputState = &vk_vertex_input;
+  }
+
   auto vk_input_assembly = input_assembly_.pipelineCreateInfo();
   create_info.pInputAssemblyState = &vk_input_assembly;
   auto vk_viewport_state = viewport_state_.pipelineCreateInfo();

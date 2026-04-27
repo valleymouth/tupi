@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_GLFW_WINDOW_H
+#define TUPI_GLFW_WINDOW_H
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -40,3 +41,5 @@ class Window : public IWindow {
   IMouseObserverSharedPtrVec mouse_observers_{};
 };
 }  // namespace tupi::glfw
+
+#endif  // TUPI_GLFW_WINDOW_H

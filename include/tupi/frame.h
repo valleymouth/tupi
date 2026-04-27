@@ -9,16 +9,44 @@
 namespace tupi {
 class Frame {
  public:
+  struct DrawParameters {
+    SwapchainSharedPtr& swapchain;
+    FramebufferSharedPtrVec& framebuffers;
+    const PipelineSharedPtr& pipeline;
+    const Queue& graphics_queue;
+    const Queue& present_queue;
+    const CommandVec& commands;
+    DescriptorSetSharedPtrVec descriptor_sets;
+    BufferSharedPtrVec vertex_buffers;
+    OffsetVec offsets;
+    uint32_t vertex_count;
+    BufferSharedPtr index_buffer = {};
+    Offset index_offset{0};
+    uint32_t index_count{0};
+  };
+
+  struct DrawIndirectParameters {
+    SwapchainSharedPtr& swapchain;
+    FramebufferSharedPtrVec& framebuffers;
+    const PipelineSharedPtr& pipeline;
+    const Queue& graphics_queue;
+    const Queue& present_queue;
+    const CommandVec& commands;
+    DescriptorSetSharedPtrVec descriptor_sets;
+    BufferSharedPtrVec vertex_buffers;
+    OffsetVec offsets;
+    BufferSharedPtr indirect_command_buffer;
+    Offset offset;
+    uint32_t draw_count;
+    uint32_t stride;
+    BufferSharedPtr index_buffer = {};
+    Offset index_offset{0};
+  };
+
   Frame(const LogicalDeviceSharedPtr& logical_device,
         const CommandPoolSharedPtr& command_pool);
-  auto draw(SwapchainSharedPtr& swapchain,
-            FramebufferSharedPtrVec& framebuffers,
-            const PipelineSharedPtr& pipeline, const Queue& graphics_queue,
-            const Queue& present_queue, const CommandVec& commands,
-            DescriptorSetSharedPtrVec descriptor_sets,
-            BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
-            uint32_t vertex_count, BufferSharedPtr index_buffer = {},
-            Offset index_offset = 0, uint32_t index_count = 0) -> void;
+  auto draw(const DrawParameters& parameters) -> void;
+  auto drawIndirect(const DrawIndirectParameters& parameters) -> void;
 
   auto addTickObserver(ITickObserverSharedPtr tick_observer) -> void;
 

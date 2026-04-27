@@ -9,6 +9,7 @@
 
 namespace tupi::gltf {
 struct Mesh {
+  uint32_t index;
   std::optional<std::string> name;
   std::vector<MeshPrimitive> primitives;
 };

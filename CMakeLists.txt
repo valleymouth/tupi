@@ -10,7 +10,10 @@ set(EP_DEPLOY_DIR ${EP_BINARY_DIR}/deploy)
 set(EP_INCLUDE_DIR ${EP_DEPLOY_DIR}/include)
 file(MAKE_DIRECTORY ${EP_DEPLOY_DIR})
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan 1.4.335.0 REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIR}/../Source/SPIRV-Reflect)
+SET(VULKAN_SPIRV_REFLECT_SOURCE_FILE ${Vulkan_INCLUDE_DIR}/../Source/SPIRV-Reflect/spirv_reflect.c)
+
 find_package(X11 REQUIRED)
 find_package(Threads REQUIRED)
 ExternalProject_Add(
@@ -22,16 +25,17 @@ ExternalProject_Add(
 add_library(glfw3 STATIC IMPORTED) 
 set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${EP_DEPLOY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}glfw3${CMAKE_STATIC_LIBRARY_SUFFIX})
 ExternalProject_Add(
-  glm
-  GIT_REPOSITORY https://github.com/g-truc/glm.git
-  GIT_SHALLOW ON
-  CMAKE_ARGS -DGLM_TEST_ENABLE=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
-ExternalProject_Add(
   json
   GIT_REPOSITORY https://github.com/nlohmann/json.git
   GIT_TAG v3.11.2
   GIT_SHALLOW ON
   CMAKE_ARGS -DJSON_BuildTests=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
+ExternalProject_Add(
+  SPIRV-Reflect
+  GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
+  GIT_TAG vulkan-sdk-1.4.335.0
+  GIT_SHALLOW ON
+  CMAKE_ARGS -DSPIRV_REFLECT_STATIC_LIB=ON -DSPIRV_REFLECT_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EP_DEPLOY_DIR})
 
 add_compile_options($<$<CONFIG:DEBUG>:-DDEBUG>)
 
@@ -89,12 +93,13 @@ set(SOURCES
   src/third_party/imgui/imgui_draw.cpp
   src/third_party/imgui/imgui_tables.cpp
   src/third_party/imgui/imgui_impl_glfw.cpp
-  src/third_party/imgui/imgui_impl_vulkan.cpp)
+  src/third_party/imgui/imgui_impl_vulkan.cpp
+  ${VULKAN_SPIRV_REFLECT_SOURCE_FILE})
 
 add_library(tupi ${SOURCES})
 target_include_directories(tupi PUBLIC ${Vulkan_INCLUDE_DIR} ${EP_INCLUDE_DIR} PRIVATE include include/third_party/stb include/third_party/imgui)
 target_link_libraries(tupi glfw3 ${Vulkan_LIBRARIES}) # ${CMAKE_DL_LIBS} ${X11_LIBRARIES} Threads::Threads)
-add_dependencies(tupi glfw glm json)
+add_dependencies(tupi glfw json)
 target_compile_features(tupi PUBLIC cxx_std_23)
 
 add_subdirectory(apps)

@@ -19,16 +19,13 @@ namespace tupi {
 class Pipeline {
  public:
   Pipeline(LogicalDeviceSharedPtr logical_device, ShaderSharedPtrVec shaders,
-           PipelineVertexInput vertex_input,
            PipelineInputAssembly input_assembly,
            PipelineViewportState viewport_state,
            PipelineRasterizationState rasterization_state,
            PipelineMultisampleState multisample_state,
            PipelineColorBlendState color_blend_state,
            PipelineDepthStencilState depth_stencil_state,
-           PipelineDynamicState dynamic_state,
-           PipelineLayoutSharedPtr pipeline_layout,
-           RenderPassSharedPtr render_pass);
+           PipelineDynamicState dynamic_state, RenderPassSharedPtr render_pass);
   ~Pipeline();
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;

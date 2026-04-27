@@ -7,11 +7,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 namespace tupi {
@@ -61,12 +63,14 @@ class PipelineDynamicState;
 class PipelineLayout;
 class PipelineMultisampleState;
 class PipelineRasterizationState;
+class PipelineVertexInput;
 class PhysicalDevice;
 class Queue;
 class QueueFamily;
 class RenderPass;
 class Sampler;
 class Semaphore;
+class Shader;
 class Shader;
 class SubpassDescription;
 class Swapchain;
@@ -76,6 +80,7 @@ class Texture2D;
 class VertexInput;
 class ViewportState;
 
+struct DescriptorSetLayoutInfo;
 struct Mesh;
 struct Node;
 struct QueueCreateInfo;

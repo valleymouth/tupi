@@ -21,6 +21,7 @@ class PipelineLayout {
 
  private:
   LogicalDeviceSharedPtr logical_device_{};
+  DescriptorSetLayoutSharedPtrVec descriptor_set_layouts_{};
   Handle<VkPipelineLayout> pipeline_layout_{};
 };
 }  // namespace tupi

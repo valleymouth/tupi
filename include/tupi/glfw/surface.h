@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_GLFW_SURFACE_H
+#define TUPI_GLFW_SURFACE_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -26,3 +27,5 @@ class Surface : public ISurface {
   Handle<VkSurfaceKHR> surface_{};
 };
 }  // namespace tupi::glfw
+
+#endif  // TUPI_GLFW_SURFACE_H

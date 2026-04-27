@@ -11,6 +11,7 @@ using DescriptorSetResource = std::variant<BufferSharedPtr, ITextureSharedPtr>;
 using DescriptorSetResourceVec = std::vector<DescriptorSetResource>;
 
 struct WriteDescriptorSet {
+  // Consider using type erasure?
   using ResourceType = std::variant<BufferSharedPtr, ITextureSharedPtr>;
 
   // explicit WriteDescriptorSet(BufferSharedPtr buffer)

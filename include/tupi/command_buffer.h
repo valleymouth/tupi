@@ -40,11 +40,17 @@ class CommandBuffer {
   auto bindPipeline(PipelineSharedPtr pipeline) -> void;
   auto bindDescriptorSets(PipelineLayoutSharedPtr pipeline_layout,
                           DescriptorSetSharedPtrVec descriptor_sets) -> void;
+  auto bindVertexBuffers(BufferSharedPtrVec vertex_buffers,
+                         OffsetVec vertex_offsets) -> void;
+  auto bindIndexBuffer(BufferSharedPtr index_buffer, Offset index_offset)
+      -> void;
   auto setViewport(VkViewport viewport) -> void;
   auto setScissor(VkRect2D rect) -> void;
-  auto draw(BufferSharedPtrVec vertex_buffers, OffsetVec offsets,
-            uint32_t vertex_count, BufferSharedPtr index_buffer = {},
-            Offset index_offset = 0, uint32_t index_count = 0) -> void;
+  auto draw(uint32_t vertex_count) -> void;
+  auto drawIndexed(uint32_t index_count) -> void;
+  auto drawIndexedIndirect(BufferSharedPtr indirect_command_buffer,
+                           Offset offset, uint32_t draw_count, uint32_t stride)
+      -> void;
   auto copy(BufferSharedPtr source, BufferSharedPtr destination,
             VkDeviceSize size, VkDeviceSize source_offset = 0,
             VkDeviceSize destination_offset = 0) -> void;
