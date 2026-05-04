@@ -262,8 +262,8 @@ int main() {
       logical_device, graphics_queue_family);
 
   tupi::gltf::File gltf_file;
-  gltf_file.load("../../../resources/FlightHelmet.gltf");
-  // gltf_file.load("../../../resources/GearboxAssy.gltf");
+  // gltf_file.load("../../../resources/FlightHelmet.gltf");
+  gltf_file.load("../../../resources/GearboxAssy.gltf");
 
   std::vector<VkDrawIndexedIndirectCommand> indirect_commands(
       gltf_file.meshes.size(), {0, 0, 0, 0, 0});
@@ -275,13 +275,14 @@ int main() {
       [&](const tupi::gltf::Node& node, const glm::mat4& matrix) {
         if (node.mesh.has_value()) {
           ++indirect_commands[node.mesh.value()].instanceCount;
+          glm::mat4 local_matrix = {matrix[2], matrix[0], matrix[1], matrix[3]};
           if (auto model_matrix_iterator =
                   model_matrix_map.find(node.mesh.value());
               model_matrix_iterator != model_matrix_map.end()) {
-            model_matrix_iterator->second.push_back(matrix);
+            model_matrix_iterator->second.push_back(local_matrix);
           } else {
             model_matrix_map.emplace(node.mesh.value(),
-                                     std::vector<glm::mat4>{matrix});
+                                     std::vector<glm::mat4>{local_matrix});
           }
           ++instance_count;
         }
