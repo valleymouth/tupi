@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_BUFFER_H
+#define TUPI_BUFFER_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -111,3 +112,4 @@ class Buffer {
   void* data_{nullptr};
 };
 }  // namespace tupi
+#endif  // TUPI_BUFFER_H

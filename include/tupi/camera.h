@@ -30,5 +30,4 @@ class Camera : public Transform {
   glm::mat4 projection_;
 };
 }  // namespace tupi
-
 #endif  // TUPI_CAMERA_H

@@ -1,5 +1,5 @@
-#ifndef TUPI_DESCRIPTOR_SET_LAYOUT_BINDING
-#define TUPI_DESCRIPTOR_SET_LAYOUT_BINDING
+#ifndef TUPI_DESCRIPTOR_SET_LAYOUT_BINDING_H
+#define TUPI_DESCRIPTOR_SET_LAYOUT_BINDING_H
 
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -15,4 +15,4 @@ using DescriptorSetLayoutBindingVec =
     std::vector<std::variant<DescriptorSetLayoutBinding,
                              BindlessDescriptorSetLayoutBinding>>;
 }  // namespace tupi
-#endif  // TUPI_DESCRIPTOR_SET_LAYOUT_BINDING
+#endif  // TUPI_DESCRIPTOR_SET_LAYOUT_BINDING_H

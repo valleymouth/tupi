@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_LOGICAL_DEVICE_H
+#define TUPI_LOGICAL_DEVICE_H
 
 #include <memory>
 #include <vector>
@@ -42,3 +43,4 @@ class LogicalDevice {
   Handle<VkDevice> device_{};
 };
 }  // namespace tupi
+#endif  // TUPI_LOGICAL_DEVICE_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_FRAME_H
+#define TUPI_FRAME_H
 
 #include <chrono>
 
@@ -62,3 +63,4 @@ class Frame {
   TimePoint last_frame_time_point_;
 };
 }  // namespace tupi
+#endif  // TUPI_FRAME_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SEMAPHORE_H
+#define TUPI_SEMAPHORE_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -24,3 +25,4 @@ class Semaphore {
   Handle<VkSemaphore> semaphore_{};
 };
 }  // namespace tupi
+#endif  // TUPI_SEMAPHORE_H

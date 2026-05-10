@@ -27,5 +27,4 @@ class Surface : public ISurface {
   Handle<VkSurfaceKHR> surface_{};
 };
 }  // namespace tupi::glfw
-
 #endif  // TUPI_GLFW_SURFACE_H

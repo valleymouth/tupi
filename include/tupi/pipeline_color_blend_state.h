@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_COLOR_BLEND_STATE_H
+#define TUPI_PIPELINE_COLOR_BLEND_STATE_H
 
 #include "tupi/fwd.h"
 
@@ -17,3 +18,4 @@ class PipelineColorBlendState {
   PipelineColorBlendAttachmentStateVec attachments_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_COLOR_BLEND_STATE_H

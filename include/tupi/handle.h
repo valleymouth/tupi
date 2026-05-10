@@ -25,5 +25,4 @@ struct Handle {
   auto operator&() const -> const T* { return &handle; }
 };
 }  // namespace tupi
-
 #endif  // TUPI_HANDLE_H

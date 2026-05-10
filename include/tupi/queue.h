@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_QUEUE_H
+#define TUPI_QUEUE_H
 
 #include "tupi/fwd.h"
 #include "tupi/handle.h"
@@ -28,3 +29,4 @@ class Queue {
   Handle<VkQueue> queue_{};
 };
 }  // namespace tupi
+#endif  // TUPI_QUEUE_H

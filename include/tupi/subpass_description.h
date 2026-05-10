@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SUBPASS_DESCRIPTION_H
+#define TUPI_SUBPASS_DESCRIPTION_H
 
 #include <optional>
 #include <vulkan/vulkan.hpp>
@@ -25,3 +26,4 @@ class SubpassDescription {
   std::optional<AttachmentReference> depth_attachment_{};
 };
 }  // namespace tupi
+#endif  // TUPI_SUBPASS_DESCRIPTION_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_UTILITY_H
+#define TUPI_UTILITY_H
 
 #include <ranges>
 #include <vector>
@@ -15,3 +16,4 @@ inline auto handles(R&& range) {
   return result;
 }
 }  // namespace tupi
+#endif  // TUPI_UTILITY_H

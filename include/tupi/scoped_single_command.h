@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SCOPED_SINGLE_COMMMAND_H
+#define TUPI_SCOPED_SINGLE_COMMMAND_H
 
 #include "tupi/command_pool.h"
 #include "tupi/handle.h"
@@ -17,3 +18,4 @@ class ScopedSingleCommand {
   Handle<VkCommandBuffer> command_buffer_{};
 };
 }  // namespace tupi
+#endif  // TUPI_SCOPED_SINGLE_COMMMAND_H

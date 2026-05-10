@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_RENDER_PASS_H
+#define TUPI_RENDER_PASS_H
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -32,3 +33,4 @@ class RenderPass {
   SubpassDescriptionVec subpasses_{};
 };
 }  // namespace tupi
+#endif  // TUPI_RENDER_PASS_H

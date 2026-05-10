@@ -26,5 +26,4 @@ struct Transform {
   glm::vec3 scale{1.0f, 1.0f, 1.0f};
 };
 }  // namespace tupi
-
 #endif  // TUPI_TRANSFORM_H

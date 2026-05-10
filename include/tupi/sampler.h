@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SAMPLER_H
+#define TUPI_SAMPLER_H
 
 #include <memory>
 
@@ -27,3 +28,4 @@ class Sampler {
   Handle<VkSampler> sampler_{};
 };
 }  // namespace tupi
+#endif  // TUPI_SAMPLER_H

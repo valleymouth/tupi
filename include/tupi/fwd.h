@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_FWD_H
+#define TUPI_FWD_H
 
 #include <memory>
 #include <vector>
@@ -13,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -182,3 +184,4 @@ struct Scene;
 struct Texture;
 }  // namespace gltf
 }  // namespace tupi
+#endif  // TUPI_FWD_H

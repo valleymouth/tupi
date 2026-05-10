@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_VERTEX_INPUT_H
+#define TUPI_PIPELINE_VERTEX_INPUT_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -22,3 +23,4 @@ class PipelineVertexInput {
   VertexInputAttributeDescriptionVec attribute_descriptions_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_VERTEX_INPUT_H

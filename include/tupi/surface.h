@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SURFACE_H
+#define TUPI_SURFACE_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -11,3 +12,4 @@ class ISurface {
   virtual auto window() const -> IWindowSharedPtr = 0;
 };
 }  // namespace tupi
+#endif  // TUPI_SURFACE_H

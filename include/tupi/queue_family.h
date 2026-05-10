@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_QUEUE_FAMILY_H
+#define TUPI_QUEUE_FAMILY_H
 
 #include <utility>
 #include <vulkan/vulkan.hpp>
@@ -39,3 +40,4 @@ struct hasPresentSupport {
   }
 };
 }  // namespace tupi
+#endif  // TUPI_QUEUE_FAMILY_H

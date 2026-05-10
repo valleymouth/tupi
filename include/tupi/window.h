@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_WINDOW_H
+#define TUPI_WINDOW_H
 
 #include "tupi/fwd.h"
 
@@ -15,3 +16,4 @@ class IWindow {
       -> void = 0;
 };
 }  // namespace tupi
+#endif  // TUPI_WINDOW_H

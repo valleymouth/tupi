@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_EXTENSION_SET_H
+#define TUPI_EXTENSION_SET_H
 
 #include <initializer_list>
 #include <string>
@@ -35,3 +36,4 @@ class ExtensionSet {
   Container extension_names_;
 };
 }  // namespace tupi
+#endif  // TUPI_EXTENSION_SET_H

@@ -29,5 +29,4 @@ class Engine {
   Handle<VkInstance> instance_{};
 };
 }  // namespace tupi
-
 #endif  // TUPI_ENGINE_H

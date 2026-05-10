@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_LAYOUT_H
+#define TUPI_PIPELINE_LAYOUT_H
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -25,3 +26,4 @@ class PipelineLayout {
   Handle<VkPipelineLayout> pipeline_layout_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_LAYOUT_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_IMAGE_H
+#define TUPI_IMAGE_H
 
 #include <filesystem>
 #include <memory>
@@ -18,3 +19,4 @@ class IImage {
                                  VkFormatFeatureFlags feature_flags) -> bool;
 };
 }  // namespace tupi
+#endif  // TUPI_IMAGE_H

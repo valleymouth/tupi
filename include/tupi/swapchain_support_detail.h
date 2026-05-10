@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SWAPCHAIN_SUPPORT_DETAIL_H
+#define TUPI_SWAPCHAIN_SUPPORT_DETAIL_H
 
 #include <optional>
 #include <ranges>
@@ -46,3 +47,4 @@ inline auto hasPresentMode() {
   return std::views::filter([](const auto& x) { return x.hasPresentMode(); });
 }
 }  // namespace tupi
+#endif  // TUPI_SWAPCHAIN_SUPPORT_DETAIL_H

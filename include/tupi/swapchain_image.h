@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SWAPCHAIN_IMAGE_H
+#define TUPI_SWAPCHAIN_IMAGE_H
 
 #include "tupi/fwd.h"
 #include "tupi/handle.h"
@@ -31,3 +32,4 @@ class SwapchainImage : public IImage {
   VkImage image_{VK_NULL_HANDLE};
 };
 }  // namespace tupi
+#endif  // TUPI_SWAPCHAIN_IMAGE_H

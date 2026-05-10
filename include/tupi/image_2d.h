@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_IMAGE_2D_H
+#define TUPI_IMAGE_2D_H
 
 #include <filesystem>
 #include <vulkan/vulkan.hpp>
@@ -59,3 +60,4 @@ class Image2D : public IImage {
   Handle<VkDeviceMemory> memory_{};
 };
 }  // namespace tupi
+#endif  // TUPI_IMAGE_2D_H

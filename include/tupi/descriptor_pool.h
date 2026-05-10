@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_DESCRIPTOR_POOL_H
+#define TUPI_DESCRIPTOR_POOL_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -27,3 +28,4 @@ class DescriptorPool {
   Handle<VkDescriptorPool> descriptor_pool_{};
 };
 }  // namespace tupi
+#endif  // TUPI_DESCRIPTOR_POOL_H

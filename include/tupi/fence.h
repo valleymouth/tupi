@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_FENCE_H
+#define TUPI_FENCE_H
 
 #include <memory>
 
@@ -29,3 +30,4 @@ class Fence {
   Handle<VkFence> fence_{};
 };
 }  // namespace tupi
+#endif  // TUPI_FENCE_H

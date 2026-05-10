@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_DESCRIPTOR_SET_H
+#define TUPI_DESCRIPTOR_SET_H
 
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -60,3 +61,4 @@ class DescriptorSet {
   Handle<VkDescriptorSet> descriptor_set_;
 };
 }  // namespace tupi
+#endif  // TUPI_DESCRIPTOR_SET_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_DYNAMIC_STATE_H
+#define TUPI_PIPELINE_DYNAMIC_STATE_H
 
 #include "tupi/fwd.h"
 
@@ -16,3 +17,4 @@ class PipelineDynamicState {
   VkPipelineDynamicStateCreateInfo pipeline_create_info_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_DYNAMIC_STATE_H

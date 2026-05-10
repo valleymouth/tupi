@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_FRAMEBUFFER_H
+#define TUPI_FRAMEBUFFER_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -33,3 +34,4 @@ class Framebuffer {
   Handle<VkFramebuffer> framebuffer_{};
 };
 }  // namespace tupi
+#endif  // TUPI_FRAMEBUFFER_H

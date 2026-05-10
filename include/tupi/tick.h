@@ -7,5 +7,4 @@ class ITickObserver {
   virtual auto tick(float seconds) -> void = 0;
 };
 }  // namespace tupi
-
 #endif  // TUPI_TICK_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_COMMAND_POOL_H
+#define TUPI_COMMAND_POOL_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -26,3 +27,4 @@ class CommandPool {
   Handle<VkCommandPool> command_pool_{};
 };
 }  // namespace tupi
+#endif  // TUPI_COMMAND_POOL_H

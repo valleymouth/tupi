@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_COMMAND_BUFFER_H
+#define TUPI_COMMAND_BUFFER_H
 
 #include <functional>
 #include <map>
@@ -71,3 +72,4 @@ class CommandBuffer {
   std::vector<Command> commands_{};
 };
 }  // namespace tupi
+#endif  // TUPI_COMMAND_BUFFER_H

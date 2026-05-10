@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PHYSICAL_DEVICE_H
+#define TUPI_PHYSICAL_DEVICE_H
 
 #include <ranges>
 #include <vulkan/vulkan.hpp>
@@ -73,3 +74,4 @@ inline auto hasFeature(PhysicalDevice::Feature feature) {
       [=](const auto& x) { return x->hasFeature(feature); });
 }
 }  // namespace tupi
+#endif  // TUPI_PHYSICAL_DEVICE_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_H
+#define TUPI_PIPELINE_H
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -55,3 +56,4 @@ class Pipeline {
   Handle<VkPipeline> pipeline_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_H

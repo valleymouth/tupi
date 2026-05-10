@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SWAPCHAIN_H
+#define TUPI_SWAPCHAIN_H
 
 #include <memory>
 #include <tuple>
@@ -61,3 +62,4 @@ class Swapchain {
   VkSharingMode sharing_mode_{VK_SHARING_MODE_EXCLUSIVE};
 };
 }  // namespace tupi
+#endif  // TUPI_SWAPCHAIN_H

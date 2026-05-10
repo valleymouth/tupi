@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_DEPTH_STENCIL_STATE_H
+#define TUPI_PIPELINE_DEPTH_STENCIL_STATE_H
 
 #include <vulkan/vulkan.h>
 
@@ -17,3 +18,4 @@ class PipelineDepthStencilState {
   VkPipelineDepthStencilStateCreateInfo pipeline_create_info_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_DEPTH_STENCIL_STATE_H

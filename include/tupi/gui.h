@@ -22,5 +22,4 @@ class Gui {
   bool show_demo_window_{false};
 };
 }  // namespace tupi
-
-#endif TUPI_GUI_H
+#endif  // TUPI_GUI_H

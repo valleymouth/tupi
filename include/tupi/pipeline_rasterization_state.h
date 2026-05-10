@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_PIPELINE_RASTERIZATION_STATE_H
+#define TUPI_PIPELINE_RASTERIZATION_STATE_H
 
 #include <vulkan/vulkan.hpp>
 
@@ -17,3 +18,4 @@ class PipelineRasterizationState {
   VkPipelineRasterizationStateCreateInfo pipeline_create_info_{};
 };
 }  // namespace tupi
+#endif  // TUPI_PIPELINE_RASTERIZATION_STATE_H

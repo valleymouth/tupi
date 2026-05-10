@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_DESCRIPTOR_SET_LAYOUT_H
+#define TUPI_DESCRIPTOR_SET_LAYOUT_H
 
 #include <span>
 #include <vulkan/vulkan.hpp>
@@ -64,3 +65,4 @@ class BindlessDescriptorSetLayout : public DescriptorSetLayout {
                             DescriptorSetLayoutBindlessConstructor{}) {}
 };
 }  // namespace tupi
+#endif  // TUPI_DESCRIPTOR_SET_LAYOUT_H

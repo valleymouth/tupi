@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TUPI_SHADER_H
+#define TUPI_SHADER_H
 
 #include <spirv_reflect.h>
 
@@ -61,3 +62,4 @@ class Shader {
   DescriptorSetLayoutInfoMap descriptor_set_layouts_{};
 };
 }  // namespace tupi
+#endif  // TUPI_SHADER_H

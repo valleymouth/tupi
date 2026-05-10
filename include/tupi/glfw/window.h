@@ -41,5 +41,4 @@ class Window : public IWindow {
   IMouseObserverSharedPtrVec mouse_observers_{};
 };
 }  // namespace tupi::glfw
-
 #endif  // TUPI_GLFW_WINDOW_H
